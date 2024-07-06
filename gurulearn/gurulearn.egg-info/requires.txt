@@ -1,0 +1,12 @@
+opencv-python
+scipy
+matplotlib
+tensorflow==2.16.1
+Keras
+pandas
+numpy
+plotly
+scikit-learn
+librosa
+tqdm
+resampy

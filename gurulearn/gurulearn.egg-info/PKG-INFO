@@ -1,0 +1,19 @@
+Metadata-Version: 2.1
+Name: gurulearn
+Version: 1.0.9
+Summary: library for linear_regression and gvgg16 model generation(fixed bugs),audio_classify and audio_classify_predict
+Author: Guru Dharsan T
+Author-email: gurudharsan123@gmail.com
+License-File: LICENSE
+Requires-Dist: opencv-python
+Requires-Dist: scipy
+Requires-Dist: matplotlib
+Requires-Dist: tensorflow==2.16.1
+Requires-Dist: Keras
+Requires-Dist: pandas
+Requires-Dist: numpy
+Requires-Dist: plotly
+Requires-Dist: scikit-learn
+Requires-Dist: librosa
+Requires-Dist: tqdm
+Requires-Dist: resampy
