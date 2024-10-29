@@ -1,0 +1,15 @@
+opencv-python
+scipy
+matplotlib
+tensorflow==2.16.1
+opencv-python-headless
+keras
+pandas
+numpy
+plotly
+scikit-learn
+librosa
+tqdm
+resampy
+pillow
+xgboost

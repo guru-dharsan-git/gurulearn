@@ -1,0 +1,10 @@
+LICENSE
+README.md
+setup.py
+gurulearn/__init__.py
+gurulearn/main.py
+gurulearn.egg-info/PKG-INFO
+gurulearn.egg-info/SOURCES.txt
+gurulearn.egg-info/dependency_links.txt
+gurulearn.egg-info/requires.txt
+gurulearn.egg-info/top_level.txt
