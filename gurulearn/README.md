@@ -123,65 +123,116 @@ This project is licensed under the MIT License.
 
 
 
-# ######                                                                      image_classify:                                                                  ###### #
 
-# example usages:
+### ImageClassifier ###
 
+The `ImageClassifier` class in `gurulearn` provides an extensive set of tools for image classification, supporting both custom CNNs and pre-trained models for transfer learning. It includes utilities for data loading, model selection based on dataset size, and model training and evaluation.
+
+#### Key Features
+
+- **Flexible Model Selection**: Automatically selects a model based on dataset size, or allows users to force a specific model (custom CNNs or pre-trained models like VGG16, ResNet50, MobileNet, etc.).
+- **Data Loading Options**: Supports loading images from directories or CSV files.
+- **Transfer Learning with Fine-Tuning**: Offers optional fine-tuning of pre-trained models for enhanced accuracy.
+- **Custom CNN Architectures**: Provides a variety of custom CNN models (`cnn1` to `cnn10`) for different levels of complexity.
+- **Evaluation Tools**: Built-in functions for visualizing training accuracy and displaying confusion matrices.
+
+#### Usage
+
+To use the `ImageClassifier` class, follow these steps:
+
+#### 1. Importing and Initializing
+
+```python
+from gurulearn import ImageClassifier
+
+# Initialize the image classifier
 image_classifier = ImageClassifier()
+```
+
+#### 2. Training the Model
+
+The `img_train` method trains an image classification model using either a directory of images or a CSV file with image paths and labels.
+
+```python
 image_classifier.img_train(
-    train_dir='train',
-    test_dir='test',  # Optional, can be None to split training data
-    epochs=1,
-    device='cpu',
-    force='vgg16',
-    finetune=True
-)
-
-
-image_classifier = ImageClassifier()
-image_classifier.img_train(
-    train_dir='train',
-    test_dir='test',  # Optional, can be None to split training data
-    epochs=1,
-    device='cpu',
-    force='vgg16'
-)
-
-
-# Using directory data
-image_classifier = ImageClassifier()
-image_classifier.img_train(
-    train_dir='path/to/train',
-    test_dir='path/to/test',
+    train_dir="path/to/train/data",  # or specify csv_file, img_column, label_column for CSV data
+    test_dir="path/to/test/data",    # Optional, only if test data is in a separate directory
     epochs=10,
-    device='cuda',
-    force='resnet50',
-    finetune=True
+    device="cpu",                    # Set to "cuda" if using a GPU
+    force="vgg16",                   # Force specific model choice (optional)
+    finetune=True                    # Fine-tune pre-trained models (optional)
 )
+```
 
-# Using CSV data
-image_classifier.img_train(
-    csv_file='path/to/data.csv',
-    img_column='image_path',  # Column name in CSV containing image paths
-    label_column='label',      # Column name in CSV containing labels
-    epochs=10,
-    device='cuda',
-    force='resnet50',
-    finetune=True
-)
+Parameters:
+- **train_dir**: Directory containing training images (organized in subdirectories by class) or `csv_file` for CSV data.
+- **test_dir**: Directory containing test images (optional, use if separate from `train_dir`).
+- **csv_file**: Path to CSV file if loading data from CSV.
+- **img_column**: Column name in the CSV containing image paths.
+- **label_column**: Column name in the CSV containing labels.
+- **epochs**: Number of training epochs (default: 10).
+- **device**: Device to use for training, either `"cpu"` or `"cuda"` (default: `"cpu"`).
+- **force**: Specify a particular model (options include `"simple_cnn"`, `"vgg16"`, `"resnet50"`, etc.).
+- **finetune**: Whether to fine-tune pre-trained models (default: `False`).
 
+#### Supported Models
 
-consist of 20 cnn architecture excluding finetuning
-# Instantiate and train the classifier with a specific model and fine-tuning enabled
+The `ImageClassifier` class can select models based on dataset size or through forced selection. Models include:
+
+- **Custom CNNs**: `cnn1` to `cnn10` (e.g., simple CNN, ResNet-inspired, Inception-inspired).
+- **Pre-trained Models**: `"vgg16"`, `"resnet50"`, `"mobilenet"`, `"inceptionv3"`, `"densenet"`, `"efficientnet"`, `"xception"`, `"nasnetmobile"`, `"inceptionresnetv2"`.
+- **Model Auto-Selection**: Based on dataset size, the class can automatically select the appropriate model.
+
+#### Example Workflow
+
+```python
+# Initialize the classifier
 image_classifier = ImageClassifier()
-image_classifier.img_train("path_to_train_dir", "path_to_test_dir", epochs=10, device="cuda", force="efficientnet", finetune=True)
+
+# Train the model using images organized in directories
+image_classifier.img_train(
+    train_dir="data/train_images",
+    test_dir="data/test_images",
+    epochs=20,
+    device="cuda",      # Use GPU if available
+    force="resnet50",   # Force ResNet50 model
+    finetune=True       # Enable fine-tuning
+)
+```
+
+#### 3. Plotting Training Accuracy
+
+The `plot_accuracy` method displays the training and validation accuracy across epochs.
+
+```python
+history = image_classifier.img_train(train_dir="data/train_images", epochs=10)
+image_classifier.plot_accuracy(history)
+```
+
+#### 4. Displaying Confusion Matrix
+
+After training, you can plot a confusion matrix to evaluate the model's predictions on validation data.
+
+```python
+image_classifier.plot_confusion_matrix(model, validation_generator)
+```
+
+#### Files Created
+
+- **Model File**: `selected_model.h5` - The trained model is saved for future use.
+
+### Model Selection Guidelines
+
+The `_select_model` method automatically chooses a model based on dataset size if no specific model is forced. For smaller datasets, simpler models (like `simple_cnn` or `vgg16`) are preferred, while for larger datasets, deeper models (like `resnet50`) are selected for improved accuracy.
+
+#### Model Architectures
+
+Each custom CNN model (from `cnn1` to `cnn10`) and pre-trained model architecture (VGG16, ResNet50, etc.) provides a unique structure optimized for specific types of datasets and computational capacities.
+
 
 
 # ####                                                                     **CTScanProcessor**                                                                  #### # 
 
----
-
-# CTScanProcessor
 
 **CTScanProcessor** is a Python class designed for advanced processing and quality evaluation of CT scan images. This tool is highly beneficial for applications in medical imaging, data science, and deep learning, providing noise reduction, contrast enhancement, detail preservation, and quality evaluation.
 
@@ -259,4 +310,107 @@ This project is licensed under the MIT License.
 ## Contributions
 
 Contributions are welcome! Feel free to submit pull requests or open issues.
+
+
+### AudioRecognition ###
+
+The `AudioRecognition` class in `gurulearn` provides tools for audio data augmentation, feature extraction, model training, and prediction, making it suitable for tasks like audio classification and speech recognition.
+
+#### Key Features
+
+- **Data Augmentation**: Supports time-stretching, pitch-shifting, and noise addition for audio data augmentation.
+- **Feature Extraction**: Extracts MFCCs, chroma, and spectral contrast features from audio signals.
+- **Model Training**: Trains a deep learning model for audio classification using a Conv1D and BiLSTM-based architecture.
+- **Prediction**: Predicts the class of a given audio file based on a trained model.
+
+#### Usage
+
+To use the `AudioRecognition` class, follow these steps:
+
+#### 1. Importing and Initializing
+
+```python
+from gurulearn import AudioRecognition
+
+# Initialize the audio recognition class
+audio_recognition = AudioRecognition()
+```
+
+#### 2. Loading Data with Augmentation
+
+The `load_data_with_augmentation` method loads audio data from a specified directory and performs augmentation to improve model generalization.
+
+```python
+data_dir = "path/to/audio/data"
+X, y = audio_recognition.load_data_with_augmentation(data_dir)
+```
+
+This method returns feature vectors (`X`) and labels (`y`) for training.
+
+#### 3. Training the Model
+
+The `audiotrain` method trains an audio classification model. This method also generates a confusion matrix and training history plot, which are saved in the specified model directory.
+
+```python
+audio_recognition.audiotrain(
+    data_path="path/to/audio/data",
+    epochs=50,
+    batch_size=32,
+    test_size=0.2,
+    learning_rate=0.001,
+    model_dir='model_folder'
+)
+```
+
+Parameters:
+- **data_path**: Directory path where audio data is stored (organized by class label).
+- **epochs**: Number of training epochs (default: 50).
+- **batch_size**: Training batch size (default: 32).
+- **test_size**: Proportion of data to use for testing (default: 0.2).
+- **learning_rate**: Initial learning rate for model training (default: 0.001).
+- **model_dir**: Directory where the model and label mappings will be saved.
+
+#### 4. Predicting the Class of an Audio File
+
+After training, you can predict the class of a new audio file using the `predict` or `predict_class` methods.
+
+```python
+# Path to the input audio file
+input_wav = "path/to/audio/file.wav"
+
+# Predict the label of the audio file
+predicted_label = audio_recognition.predict(input_wav)
+print(f"Predicted Label: {predicted_label}")
+```
+
+The `predict` method returns the predicted label (text), while `predict_class` returns the numeric class index.
+
+#### Example Workflow
+
+```python
+# Initialize the audio recognition instance
+audio_recognition = AudioRecognition()
+
+# Load data and perform augmentation
+X, y = audio_recognition.load_data_with_augmentation('data/audio_files')
+
+# Train the model on the audio dataset
+audio_recognition.audiotrain(
+    data_path='data/audio_files',
+    epochs=30,
+    batch_size=32,
+    learning_rate=0.001
+)
+
+# Predict the class of a new audio sample
+predicted_label = audio_recognition.predict('data/test_audio.wav')
+print("Predicted Label:", predicted_label)
+```
+
+#### Files Created
+
+- **Confusion Matrix**: `confusion_matrix.png` - Saved in the current directory after training.
+- **Training History**: `training_history.png` - Contains plots for model accuracy and loss.
+- **Model**: `audio_recognition_model.h5` - Saved in the specified model directory.
+- **Label Mapping**: `label_mapping.json` - Contains mappings of class indices to labels.
 

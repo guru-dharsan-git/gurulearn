@@ -13,3 +13,4 @@ tqdm
 resampy
 pillow
 xgboost
+seaborn

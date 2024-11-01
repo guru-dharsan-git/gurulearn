@@ -1,2 +1,2 @@
-from .main import ImageClassifier,MLModelAnalysis,CTScanProcessor
+from .main import ImageClassifier,MLModelAnalysis,CTScanProcessor,AudioRecognition
 
