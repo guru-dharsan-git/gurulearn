@@ -1,3 +1,32 @@
+Metadata-Version: 2.1
+Name: gurulearn
+Version: 1.1.1
+Summary: Library for ML model analysis, multi-image model support,CT scan processing, and audio recognition(added feature confidance to audio recognition)
+Author: Guru Dharsan T
+Author-email: gurudharsan123@gmail.com
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: opencv-python
+Requires-Dist: scipy
+Requires-Dist: matplotlib
+Requires-Dist: tensorflow==2.16.1
+Requires-Dist: opencv-python-headless
+Requires-Dist: keras
+Requires-Dist: pandas
+Requires-Dist: numpy
+Requires-Dist: plotly
+Requires-Dist: scikit-learn
+Requires-Dist: librosa
+Requires-Dist: tqdm
+Requires-Dist: resampy
+Requires-Dist: pillow
+Requires-Dist: xgboost
+Requires-Dist: seaborn
+
 # ######                                                                      MLModelAnalysis:                                                                  #######
 
 **MLModelAnalysis** is a versatile and reusable Python class designed to streamline training, evaluation, and prediction processes for various machine learning regression models. This tool allows users to switch seamlessly between models, perform consistent data preprocessing, evaluate models, and make predictions, making it highly adaptable for different machine learning tasks.
