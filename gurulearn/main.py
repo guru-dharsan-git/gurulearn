@@ -616,7 +616,7 @@ class AudioRecognition:
                         signal, sr = librosa.load(file_path, sr=16000)
 
                         def extract_features(audio_signal):
-                            mfccs = librosa.feature.mfcc(audio_signal, sr=sr, n_mfcc=20)
+                            mfccs = librosa.feature.mfcc(y=audio_signal, sr=sr, n_mfcc=20)
                             chroma = librosa.feature.chroma_stft(y=audio_signal, sr=sr)
                             spectral_contrast = librosa.feature.spectral_contrast(y=audio_signal, sr=sr)
                             combined_features = np.concatenate([mfccs, chroma, spectral_contrast], axis=0)
@@ -814,7 +814,7 @@ class AudioRecognition:
 
     def extract_features(self, audio_signal):
         sr = 16000
-        mfccs = librosa.feature.mfcc(audio_signal, sr=sr, n_mfcc=20)
+        mfccs = librosa.feature.mfcc(y=audio_signal, sr=sr, n_mfcc=20)
         chroma = librosa.feature.chroma_stft(y=audio_signal, sr=sr)
         spectral_contrast = librosa.feature.spectral_contrast(y=audio_signal, sr=sr)
         combined_features = np.concatenate([mfccs, chroma, spectral_contrast], axis=0)
