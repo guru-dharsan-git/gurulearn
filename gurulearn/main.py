@@ -15,6 +15,7 @@ from tensorflow.keras.applications import (
     VGG16, ResNet50, MobileNet, InceptionV3, DenseNet121,
     EfficientNetB0, Xception, NASNetMobile, InceptionResNetV2
 )
+from sklearn.metrics import ConfusionMatrixDisplay
 from tensorflow.keras.callbacks import ReduceLROnPlateau
 import plotly.graph_objs as go
 from sklearn.tree import DecisionTreeRegressor
