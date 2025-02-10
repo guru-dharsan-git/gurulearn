@@ -1,6 +1,11 @@
 LICENSE
 README.md
 setup.py
+gurulearn/Audio.py
+gurulearn/ChatFlow.py
+gurulearn/CtScan.py
+gurulearn/Image_Classification.py
+gurulearn/Machine_Learning.py
 gurulearn/__init__.py
 gurulearn/main.py
 gurulearn.egg-info/PKG-INFO

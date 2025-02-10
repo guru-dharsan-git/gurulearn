@@ -1,5 +1,3 @@
-# ######                                                                      MLModelAnalysis:                                                                  #######
-
 **MLModelAnalysis** is a versatile and reusable Python class designed to streamline training, evaluation, and prediction processes for various machine learning regression models. This tool allows users to switch seamlessly between models, perform consistent data preprocessing, evaluate models, and make predictions, making it highly adaptable for different machine learning tasks.
 
 ## Supported Models
@@ -414,3 +412,132 @@ print("Predicted Label:", predicted_label)
 - **Model**: `audio_recognition_model.h5` - Saved in the specified model directory.
 - **Label Mapping**: `label_mapping.json` - Contains mappings of class indices to labels.
 
+##  Introducing FlowBot  
+`FlowBot` is a flexible framework for creating **dynamic, guided interactions** (chatbots, booking systems, surveys) that adapt to user input and filter datasets in real time. Perfect for travel booking, customer support, or personalized recommendations!  
+
+
+---
+
+## Installation  
+```bash
+pip install gurulearn
+```
+
+---
+
+##  Quick Start  
+**Build a Travel Booking Bot in 5 Steps**:  
+
+```python
+import pandas as pd
+from gurulearn import FlowBot
+
+# Sample dataset
+hotels = pd.DataFrame({
+    'destination': ['Paris', 'Tokyo', 'New York'],
+    'price_range': ['$$$', '$$', '$'],
+    'hotel_name': ['Luxury Palace', 'Mountain View', 'Downtown Inn']
+})
+
+# Initialize FlowBot
+bot = FlowBot(hotels)
+
+# Collect user email first
+bot.add_personal_info("email", "Please enter your email:")
+
+# Define workflow
+bot.add("destination", "Where would you like to go?", required=True)
+bot.add("price_range", "Choose your budget:", required=False)
+bot.finish("hotel_name", "price_range")  # Final output columns
+
+# Simulate user interaction
+response = bot.process("user123", "")  # Start flow!
+print(response['message'])  # "Where would you like to go?"
+print(response['suggestions'])  # ["Paris", "Tokyo", "New York"]
+
+# User selects 'Paris'
+response = bot.process("user123", "Paris")
+print(response['message'])  # "Choose your budget:"
+print(response['suggestions'])  # ["$$$", "$$"]
+```
+
+---
+
+##  Key Features  
+
+### 1. **Dynamic Suggestions**  
+Auto-filter valid options based on prior choices:  
+```python
+bot.add("activity", "Choose an activity:", required=True)
+# Suggests only activities available in the selected destination
+```
+
+### 2. **Personalized Data Collection**  
+```python
+bot.add_personal_info("phone", "Your phone number:", required=True)
+```
+
+### 3. **Session Management**  
+Resume progress or reset conversations:  
+```python
+bot.reset_session("user123")  # Restart workflow
+```
+
+### 4. **Save Results**  
+User data and chat history auto-saved to JSON:  
+```json
+user_data/user123.json
+{
+  "personal_info": {"email": "user@example.com"},
+  "chat_history": [...]
+}
+```
+
+---
+
+## Detailed Usage  
+
+### Initialize FlowBot  
+```python
+bot = FlowBot(
+    data=df,  # Your pandas DataFrame
+)
+```
+
+### Add Workflow Steps  
+```python
+bot.add(
+    field="room_type",  # DataFrame column to filter
+    prompt="Select room type:",  # User prompt
+    required=True  # Force valid input
+)
+```
+
+### Get Final Results  
+```python
+results = response['results']  # Filtered DataFrame rows as dicts
+# Example: [{'hotel_name': 'Luxury Palace', 'price_range': '$$$'}]
+```
+
+---
+
+## 🔧 Dependencies  
+- Python 3.7+  
+- `pandas`  
+
+---
+
+
+## 📜 License  
+[MIT License](LICENSE)  
+
+---
+
+## Get Help  
+Found a bug? Open an [issue](https://github.com/guru-dharsan-git/gurulearn/issues).  
+
+--- 
+ **Happy Building!**  
+*Tag your projects with #gurulearn to share them with the community!*  
+
+---
