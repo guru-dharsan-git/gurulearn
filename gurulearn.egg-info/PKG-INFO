@@ -1,7 +1,7 @@
-Metadata-Version: 2.1
+Metadata-Version: 2.4
 Name: gurulearn
-Version: 2.1
-Summary: Comprehensive ML library for model analysis, computer vision, medical imaging, and audio processing with enhanced features including confidence metrics and flowbot integration (modularity introduced)
+Version: 3.0
+Summary: Comprehensive ML library for model analysis, computer vision, medical imaging, and audio processing with enhanced features including confidence metrics and flowbot integration (modularity introduced) used lazy loader to fix slow loading
 Author: Guru Dharsan T
 Author-email: gurudharsan123@gmail.com
 Keywords: machine learning,deep learning,computer vision,medical imaging,audio processing,AI
@@ -20,8 +20,44 @@ Classifier: Topic :: Scientific/Engineering :: Image Processing
 Classifier: Topic :: Scientific/Engineering :: Medical Science Apps.
 Requires-Python: >=3.9
 Description-Content-Type: text/markdown
-Provides-Extra: dev
 License-File: LICENSE
+Requires-Dist: numpy<2,>=1.22
+Requires-Dist: pandas>=1.3
+Requires-Dist: scipy>=1.9
+Requires-Dist: scikit-learn>=1.0
+Requires-Dist: xgboost>=1.7
+Requires-Dist: tensorflow==2.16.1
+Requires-Dist: opencv-python-headless>=4.5
+Requires-Dist: pillow>=9.0
+Requires-Dist: librosa>=0.9
+Requires-Dist: resampy>=0.4
+Requires-Dist: matplotlib>=3.5
+Requires-Dist: seaborn>=0.12
+Requires-Dist: plotly>=5.10
+Requires-Dist: langchain==0.3.23
+Requires-Dist: langchain-ollama==0.3.1
+Requires-Dist: onnxruntime==1.21.0
+Requires-Dist: tokenizers
+Requires-Dist: langchain-community==0.3.21
+Requires-Dist: faiss-cpu==1.10.0
+Requires-Dist: tqdm>=4.64
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: black>=22.0; extra == "dev"
+Requires-Dist: flake8>=5.0; extra == "dev"
+Provides-Extra: gpu
+Requires-Dist: onnxruntime-gpu; extra == "gpu"
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: keywords
+Dynamic: license-file
+Dynamic: provides-extra
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
 
 **MLModelAnalysis** is a versatile and reusable Python class designed to streamline training, evaluation, and prediction processes for various machine learning regression models. This tool allows users to switch seamlessly between models, perform consistent data preprocessing, evaluate models, and make predictions, making it highly adaptable for different machine learning tasks.
 
@@ -342,7 +378,7 @@ The `AudioRecognition` class in `gurulearn` provides tools for audio data augmen
 #### Key Features
 
 - **Data Augmentation**: Supports time-stretching, pitch-shifting, and noise addition for audio data augmentation.
-- **Feature Extraction**: Extracts MFCCs, chroma, and spectral contrast features from audio signals.
+- **Feature Extraction**: Extracts MFCCs, FAISS, and spectral contrast features from audio signals.
 - **Model Training**: Trains a deep learning model for audio classification using a Conv1D and BiLSTM-based architecture.
 - **Prediction**: Predicts the class of a given audio file based on a trained model.
 
@@ -566,3 +602,186 @@ Found a bug? Open an [issue](https://github.com/guru-dharsan-git/gurulearn/issue
 *Tag your projects with #gurulearn to share them with the community!*  
 
 ---
+
+
+
+# GuruLearn
+
+## QAAgent: Create intelligent QA systems with RAG
+
+GuruLearn's QAAgent provides a simple yet powerful way to create domain-specific question-answering agents using Retrieval Augmented Generation (RAG).
+
+## Installation
+
+```bash
+pip install gurulearn
+```
+
+## Dependencies
+
+GuruLearn requires the following dependencies:
+
+- langchain-ollama
+- langchain-core
+- FAISS
+- pandas
+- langchain-community
+
+Install them using:
+
+
+
+## Quick Start
+
+```python
+from gurulearn import QAAgent
+import pandas as pd
+
+# Load your data
+df = pd.read_csv("customer_support_tickets.csv")
+
+# Create an agent
+support_agent = QAAgent(
+    data=df,
+    page_content_fields=["Title", "Description"],
+    metadata_fields=["Category", "Priority"],
+    system_prompt="You are a helpful customer support agent."
+)
+
+# Query the agent
+answer = support_agent.query("How do I reset my password?")
+print(answer)
+
+# Or use interactive mode
+support_agent.interactive_mode()
+```
+
+## Features
+
+- **Simple Setup**: Create powerful RAG-based QA systems with minimal code
+- **Flexible Data Support**: Works with pandas DataFrames or lists of dictionaries
+- **Custom Prompting**: Define system prompts and instructions to shape agent responses
+- **Vector Database Integration**: Automatically creates and manages embeddings for efficient retrieval
+- **Interactive Mode**: Built-in console interface for quick experimentation
+
+## API Reference
+
+### QAAgent
+
+```python
+QAAgent(
+    data,                    # DataFrame or list of dictionaries containing the source data
+    page_content_fields,     # Field(s) to use as document content
+    metadata_fields=None,    # Fields to include as metadata
+    llm_model="llama3.2",    # Ollama model to use for generation
+    k=5,                     # Number of documents to retrieve
+    embedding_model="mxbai-embed-large",  # Ollama model for embeddings
+    db_location="./langchain_db",  # Directory to store vector database
+    collection_name="documents",          # Name of the collection in the vector store
+    prompt_template=None,    # Custom prompt template (if None, a default will be used)
+    system_prompt="You are an expert in answering questions about the provided information."
+)
+```
+
+#### Methods
+
+- **query(question)**: Query the agent with a question and get a response
+- **interactive_mode()**: Start an interactive console session for querying the agent
+
+## Examples
+
+### Restaurant Review QA System
+
+```python
+from gurulearn import QAAgent
+import pandas as pd
+
+# Load restaurant review data
+df = pd.read_csv("restaurant_reviews.csv")
+
+# Create a restaurant review agent
+restaurant_agent = QAAgent(
+    data=df,
+    page_content_fields=["Title", "Review"],
+    metadata_fields=["Rating", "Date"],
+    llm_model="llama3.2",
+    k=5,
+    db_location="./restaurant_db",
+    collection_name="restaurant_reviews",
+    system_prompt="You are an expert in answering questions about a pizza restaurant."
+)
+
+# Ask questions about the restaurant
+result = restaurant_agent.query("What do customers say about the pepperoni pizza?")
+print(result)
+```
+
+### HR Policy Assistant
+
+```python
+from gurulearn import QAAgent
+
+# Create an HR policy assistant
+hr_documents = [
+    {"Policy": "Parental Leave", "Description": "Employees are entitled to 12 weeks of paid parental leave...", "Department": "HR", "LastUpdated": "2023-09-01"},
+    {"Policy": "Remote Work", "Description": "Employees may work remotely up to 3 days per week...", "Department": "HR", "LastUpdated": "2023-10-15"},
+    # More policy documents...
+]
+
+hr_agent = QAAgent(
+    data=hr_documents,
+    page_content_fields=["Policy", "Description"],
+    metadata_fields=["Department", "LastUpdated"],
+    db_location="./_db",
+    collection_name="hr_policies",
+    system_prompt="You are an HR assistant providing information about company policies."
+)
+
+# Query the HR assistant
+hr_agent.interactive_mode()
+```
+
+## Advanced Usage
+
+### Custom Prompt Templates
+
+You can define custom prompt templates to control how the agent processes and responds to queries:
+
+```python
+custom_template = """
+You are a technical support specialist for computer hardware.
+
+CONTEXT:
+{reviews}
+
+USER QUESTION:
+{question}
+
+Please provide a concise answer focusing only on the information found in the context.
+If the information isn't in the context, admit you don't know.
+"""
+
+support_agent = QAAgent(
+    data=support_df,
+    page_content_fields=["Issue", "Resolution"],
+    prompt_template=custom_template
+)
+```
+
+### Using with Different Models
+
+QAAgent works with any Ollama model:
+
+```python
+# Using with different Ollama models
+medical_agent = QAAgent(
+    data=medical_data,
+    page_content_fields="text",
+    llm_model="nous-hermes2:Q5_K_M", 
+    embedding_model="nomic-embed-text"
+)
+```
+
+## License
+
+MIT

@@ -11,9 +11,18 @@ resampy>=0.4
 matplotlib>=3.5
 seaborn>=0.12
 plotly>=5.10
+langchain==0.3.23
+langchain-ollama==0.3.1
+onnxruntime==1.21.0
+tokenizers
+langchain-community==0.3.21
+faiss-cpu==1.10.0
 tqdm>=4.64
 
 [dev]
 pytest>=7.0
 black>=22.0
 flake8>=5.0
+
+[gpu]
+onnxruntime-gpu

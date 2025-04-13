@@ -7,8 +7,8 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name='gurulearn',
-    version='2.1',
-    description='Comprehensive ML library for model analysis, computer vision, medical imaging, and audio processing with enhanced features including confidence metrics and flowbot integration (modularity introduced)',
+    version='3.0',
+    description='Comprehensive ML library for model analysis, computer vision, medical imaging, and audio processing with enhanced features including confidence metrics and flowbot integration (modularity introduced) used lazy loader to fix slow loading',
     author='Guru Dharsan T',
     author_email='gurudharsan123@gmail.com',
     long_description=long_description,
@@ -40,14 +40,29 @@ setup(
         'seaborn>=0.12',
         'plotly>=5.10',
 
+        # Agent langchain and dependencies
+        'langchain==0.3.23',
+        'langchain-ollama==0.3.1',
+        'onnxruntime==1.21.0',  # Choose either this or GPU version, not both
+        # 'onnxruntime-gpu',    # Commented out to avoid conflicts
+        'tokenizers',
+        'langchain-community==0.3.21',  # Added explicit dependency for tokenizers
+        'faiss-cpu==1.10.0',
         # Utilities
         'tqdm>=4.64',
     ],
+    package_data={
+        '': ['*.json', '*.txt', '*.onnx'],  # Include model files if needed
+    },
+    include_package_data=True,  # Make sure package data is included
     extras_require={
         'dev': [
             'pytest>=7.0',
             'black>=22.0',
             'flake8>=5.0'
+        ],
+        'gpu': [
+            'onnxruntime-gpu',  # Moved to extras_require
         ]
     },
     classifiers=[
