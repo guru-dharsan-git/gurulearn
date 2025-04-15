@@ -7,8 +7,8 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name='gurulearn',
-    version='3.0',
-    description='Comprehensive ML library for model analysis, computer vision, medical imaging, and audio processing with enhanced features including confidence metrics and flowbot integration (modularity introduced) used lazy loader to fix slow loading',
+    version='3.0.1',
+    description='Comprehensive ML library for model analysis, computer vision, medical imaging, and audio processing with enhanced features including confidence metrics and flowbot integration (modularity introduced) used lazy loader to fix slow loading updated lisence',
     author='Guru Dharsan T',
     author_email='gurudharsan123@gmail.com',
     long_description=long_description,

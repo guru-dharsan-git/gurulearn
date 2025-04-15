@@ -2,7 +2,6 @@ from langchain_ollama.llms import OllamaLLM
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import OllamaEmbeddings
 from langchain_community.vectorstores import FAISS
-
 from langchain_core.documents import Document
 import os
 import pandas as pd

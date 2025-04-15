@@ -1,7 +1,7 @@
-Metadata-Version: 2.4
+Metadata-Version: 2.1
 Name: gurulearn
-Version: 3.0
-Summary: Comprehensive ML library for model analysis, computer vision, medical imaging, and audio processing with enhanced features including confidence metrics and flowbot integration (modularity introduced) used lazy loader to fix slow loading
+Version: 3.0.1
+Summary: Comprehensive ML library for model analysis, computer vision, medical imaging, and audio processing with enhanced features including confidence metrics and flowbot integration (modularity introduced) used lazy loader to fix slow loading updated lisence
 Author: Guru Dharsan T
 Author-email: gurudharsan123@gmail.com
 Keywords: machine learning,deep learning,computer vision,medical imaging,audio processing,AI
@@ -20,44 +20,9 @@ Classifier: Topic :: Scientific/Engineering :: Image Processing
 Classifier: Topic :: Scientific/Engineering :: Medical Science Apps.
 Requires-Python: >=3.9
 Description-Content-Type: text/markdown
-License-File: LICENSE
-Requires-Dist: numpy<2,>=1.22
-Requires-Dist: pandas>=1.3
-Requires-Dist: scipy>=1.9
-Requires-Dist: scikit-learn>=1.0
-Requires-Dist: xgboost>=1.7
-Requires-Dist: tensorflow==2.16.1
-Requires-Dist: opencv-python-headless>=4.5
-Requires-Dist: pillow>=9.0
-Requires-Dist: librosa>=0.9
-Requires-Dist: resampy>=0.4
-Requires-Dist: matplotlib>=3.5
-Requires-Dist: seaborn>=0.12
-Requires-Dist: plotly>=5.10
-Requires-Dist: langchain==0.3.23
-Requires-Dist: langchain-ollama==0.3.1
-Requires-Dist: onnxruntime==1.21.0
-Requires-Dist: tokenizers
-Requires-Dist: langchain-community==0.3.21
-Requires-Dist: faiss-cpu==1.10.0
-Requires-Dist: tqdm>=4.64
 Provides-Extra: dev
-Requires-Dist: pytest>=7.0; extra == "dev"
-Requires-Dist: black>=22.0; extra == "dev"
-Requires-Dist: flake8>=5.0; extra == "dev"
 Provides-Extra: gpu
-Requires-Dist: onnxruntime-gpu; extra == "gpu"
-Dynamic: author
-Dynamic: author-email
-Dynamic: classifier
-Dynamic: description
-Dynamic: description-content-type
-Dynamic: keywords
-Dynamic: license-file
-Dynamic: provides-extra
-Dynamic: requires-dist
-Dynamic: requires-python
-Dynamic: summary
+License-File: LICENSE
 
 **MLModelAnalysis** is a versatile and reusable Python class designed to streamline training, evaluation, and prediction processes for various machine learning regression models. This tool allows users to switch seamlessly between models, perform consistent data preprocessing, evaluate models, and make predictions, making it highly adaptable for different machine learning tasks.
 
