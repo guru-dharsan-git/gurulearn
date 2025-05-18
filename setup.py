@@ -7,7 +7,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name='gurulearn',
-    version='4.0',
+    version='4.1',
     description="GuruLearn is a comprehensive Python library that seamlessly integrates machine learning, computer vision, audio processing, and conversational AI capabilities in one package. Through six specialized modules (MLModelAnalysis, image classification, CTScanProcessor, AudioRecognition, FlowBot, and QAAgent), it empowers developers to build sophisticated AI solutions with minimal setup, accelerating the journey from prototype to production for data-driven applications across multiple domains.",
     author='Guru Dharsan T',
     author_email='gurudharsan123@gmail.com',
