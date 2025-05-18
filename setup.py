@@ -16,7 +16,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         # Core Data Science
-        'numpy>=1.22,<2',
+        'numpy>=1.22,<1.26',
         'pandas>=1.3',
         'scipy>=1.9',
 
