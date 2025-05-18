@@ -7,8 +7,8 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name='gurulearn',
-    version='3.0.1',
-    description='Comprehensive ML library for model analysis, computer vision, medical imaging, and audio processing with enhanced features including confidence metrics and flowbot integration (modularity introduced) used lazy loader to fix slow loading updated lisence',
+    version='4.0',
+    description="GuruLearn is a comprehensive Python library that seamlessly integrates machine learning, computer vision, audio processing, and conversational AI capabilities in one package. Through six specialized modules (MLModelAnalysis, image classification, CTScanProcessor, AudioRecognition, FlowBot, and QAAgent), it empowers developers to build sophisticated AI solutions with minimal setup, accelerating the journey from prototype to production for data-driven applications across multiple domains.",
     author='Guru Dharsan T',
     author_email='gurudharsan123@gmail.com',
     long_description=long_description,
@@ -16,13 +16,21 @@ setup(
     packages=find_packages(),
     install_requires=[
         # Core Data Science
-        'numpy>=1.22,<1.26',
+        'numpy>=1.22,<2',
         'pandas>=1.3',
         'scipy>=1.9',
 
         # Machine Learning
         'scikit-learn>=1.0',
         'xgboost>=1.7',
+
+        'torch>=1.9.0',
+        'torchvision>=0.10.0',
+        'numpy>=1.19.5',
+        'matplotlib>=3.4.3',
+        'Pillow>=8.3.1',
+        'tqdm>=4.62.2',
+        'torchsummary>=1.5.1',
 
         # Deep Learning (TensorFlow includes Keras)
         'tensorflow==2.16.1',
@@ -48,8 +56,7 @@ setup(
         'tokenizers',
         'langchain-community==0.3.21',  # Added explicit dependency for tokenizers
         'faiss-cpu==1.10.0',
-        # Utilities
-        'tqdm>=4.64',
+
     ],
     package_data={
         '': ['*.json', '*.txt', '*.onnx'],  # Include model files if needed
