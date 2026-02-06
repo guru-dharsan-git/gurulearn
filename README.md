@@ -1,726 +1,381 @@
-**MLModelAnalysis** is a versatile and reusable Python class designed to streamline training, evaluation, and prediction processes for various machine learning regression models. This tool allows users to switch seamlessly between models, perform consistent data preprocessing, evaluate models, and make predictions, making it highly adaptable for different machine learning tasks.
+<p align="center">
+  <img src="https://img.shields.io/badge/version-5.0.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/python-3.9+-green.svg" alt="Python">
+  <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
+  <img src="https://img.shields.io/badge/typed-yes-brightgreen.svg" alt="Typed">
+</p>
 
-## Supported Models
+# Gurulearn
 
-- Linear Regression (`linear_regression`)
-- Decision Tree Regressor (`decision_tree`)
-- Random Forest Regressor (`random_forest`)
-- Support Vector Machine (`svm`)
-- Gradient Boosting Regressor (`gradient_boosting`)
-- K-Nearest Neighbors (`knn`)
-- AdaBoost Regressor (`ada_boost`)
-- Neural Network (MLP Regressor) (`mlp`)
-- XGBoost Regressor (`xgboost`)
+> **A unified AI/ML toolkit for deep learning, computer vision, audio processing, and conversational AI.**
 
-## Installation
+Built with lazy loading for minimal import overhead (~0.001s). Production-ready with type hints.
 
-To use **MLModelAnalysis**, install the following dependencies:
+---
+
+## 📦 Installation
+
 ```bash
-pip install scikit-learn pandas numpy plotly xgboost
+pip install gurulearn              # Core only
+pip install gurulearn[vision]      # + PyTorch image classification
+pip install gurulearn[audio]       # + TensorFlow audio recognition  
+pip install gurulearn[agent]       # + LangChain RAG agent
+pip install gurulearn[full]        # All features
 ```
 
-## Usage
+---
 
-### 1. Initializing the Model
+## 🖼️ ImageClassifier
 
-Initialize the **MLModelAnalysis** class by specifying the `model_type` parameter, which sets the machine learning model you wish to use.
+PyTorch-based image classification with 9 model architectures.
 
-```python
-from ml_model_analysis import MLModelAnalysis
-
-# Initialize with Linear Regression
-analysis = MLModelAnalysis(model_type='linear_regression')
-
-# Initialize with Random Forest
-analysis = MLModelAnalysis(model_type='random_forest')
-
-# Initialize with XGBoost
-analysis = MLModelAnalysis(model_type='xgboost')
-```
-
-### 2. Training and Evaluating the Model
-
-The `train_and_evaluate` method handles data preprocessing, model training, and metric evaluation. Optionally, it can save the trained model, scaler, and encoders for later use.
-
-#### Parameters
-- `csv_file`: Path to the CSV file containing the dataset.
-- `x_elements`: List of feature columns.
-- `y_element`: Name of the target column.
-- `model_save_path` (Optional): Path to save the trained model, scaler, and encoders.
-
-#### Example
-```python
-# Set the parameters
-csv_file = 'data.csv'                     # Path to the data file
-x_elements = ['feature1', 'feature2']      # Feature columns
-y_element = 'target'                       # Target column
-
-# Initialize the model
-analysis = MLModelAnalysis(model_type='random_forest')
-
-# Train and evaluate the model
-analysis.train_and_evaluate(csv_file=csv_file, x_elements=x_elements, y_element=y_element, model_save_path='random_forest_model.pkl')
-```
-After running this code, the model displays R-squared and Mean Squared Error (MSE) metrics for both the training and test sets. If `model_save_path` is specified, the model will be saved for future predictions.
-
-### 3. Loading the Model and Making Predictions
-
-The `load_model_and_predict` method allows you to load a saved model and make predictions on new input data.
-
-#### Parameters
-- `model_path`: Path to the saved model file.
-- `input_data`: Dictionary containing feature names and values for prediction.
-
-#### Example
-```python
-# Define input data for prediction
-input_data = {
-    'feature1': 5.1,
-    'feature2': 2.3
-}
-
-# Load the model and make a prediction
-prediction = analysis.load_model_and_predict(model_path='random_forest_model.pkl', input_data=input_data)
-print(f'Prediction: {prediction}')
-```
-
-### 4. Visualization
-
-For `linear_regression` or `svm` models with only one feature, the `train_and_evaluate` method will automatically generate a Plotly plot of actual vs. predicted values for quick visualization.
-
-#### Example Use Cases
-
-- **Regression Analysis with Random Forest**
-    ```python
-    analysis = MLModelAnalysis(model_type='random_forest')
-    analysis.train_and_evaluate(csv_file='data.csv', x_elements=['feature1', 'feature2'], y_element='target', model_save_path='random_forest_model.pkl')
-    ```
-
-- **Quick Prediction with a Pre-trained Model**
-    ```python
-    prediction = analysis.load_model_and_predict(model_path='random_forest_model.pkl', input_data={'feature1': 5.1, 'feature2': 2.3})
-    print(f'Prediction: {prediction}')
-    ```
-
-- **Effortless Model Switching**
-    ```python
-    # Specify a new model type to use a different algorithm
-    analysis = MLModelAnalysis(model_type='xgboost')
-    ```
-
-## Additional Notes
-
-- **Plotting**: Visualizations are supported for linear models and SVM with single-feature datasets.
-- **Model Saving**: The `model_save_path` parameter in `train_and_evaluate` stores the model, scaler, and encoders, allowing consistent predictions when reloading the model later.
-- **Dependencies**: Ensure required libraries are installed (`scikit-learn`, `pandas`, `numpy`, `plotly`, and `xgboost`).
-
-## License
-
-This project is licensed under the MIT License.
-
-
-
-
-
-### ImageClassifier ###
-
-The `ImageClassifier` class in `gurulearn` provides an extensive set of tools for image classification, supporting both custom CNNs and pre-trained models for transfer learning. It includes utilities for data loading, model selection based on dataset size, and model training and evaluation.
-
-#### Key Features
-
-- **Flexible Model Selection**: Automatically selects a model based on dataset size, or allows users to force a specific model (custom CNNs or pre-trained models like VGG16, ResNet50, MobileNet, etc.).
-- **Data Loading Options**: Supports loading images from directories or CSV files.
-- **Transfer Learning with Fine-Tuning**: Offers optional fine-tuning of pre-trained models for enhanced accuracy.
-- **Custom CNN Architectures**: Provides a variety of custom CNN models (`cnn1` to `cnn10`) for different levels of complexity.
-- **Evaluation Tools**: Built-in functions for visualizing training accuracy and displaying confusion matrices.
-
-#### Usage
-
-To use the `ImageClassifier` class, follow these steps:
-
-#### 1. Importing and Initializing
+### Data Loading Options
 
 ```python
 from gurulearn import ImageClassifier
 
-# Initialize the image classifier
-image_classifier = ImageClassifier()
-```
+clf = ImageClassifier()
 
-#### 2. Training the Model
+# Option 1: From directory structure (data/train/{class_name}/*.jpg)
+model, history = clf.train(train_dir="data/train", test_dir="data/test")
 
-The `img_train` method trains an image classification model using either a directory of images or a CSV file with image paths and labels.
-
-```python
-image_classifier.img_train(
-    train_dir="path/to/train/data",  # or specify csv_file, img_column, label_column for CSV data
-    test_dir="path/to/test/data",    # Optional, only if test data is in a separate directory
-    epochs=10,
-    device="cpu",                    # Set to "cuda" if using a GPU
-    force="vgg16",                   # Force specific model choice (optional)
-    finetune=True                    # Fine-tune pre-trained models (optional)
+# Option 2: From CSV file
+model, history = clf.train(
+    csv_file="data.csv",
+    img_column="image_path",
+    label_column="class"
 )
 ```
 
-Parameters:
-- **train_dir**: Directory containing training images (organized in subdirectories by class) or `csv_file` for CSV data.
-- **test_dir**: Directory containing test images (optional, use if separate from `train_dir`).
-- **csv_file**: Path to CSV file if loading data from CSV.
-- **img_column**: Column name in the CSV containing image paths.
-- **label_column**: Column name in the CSV containing labels.
-- **epochs**: Number of training epochs (default: 10).
-- **device**: Device to use for training, either `"cpu"` or `"cuda"` (default: `"cpu"`).
-- **force**: Specify a particular model (options include `"simple_cnn"`, `"vgg16"`, `"resnet50"`, etc.).
-- **finetune**: Whether to fine-tune pre-trained models (default: `False`).
-
-#### Supported Models
-
-The `ImageClassifier` class can select models based on dataset size or through forced selection. Models include:
-
-- **Custom CNNs**: `cnn1` to `cnn10` (e.g., simple CNN, ResNet-inspired, Inception-inspired).
-- **Pre-trained Models**: `"vgg16"`, `"resnet50"`, `"mobilenet"`, `"inceptionv3"`, `"densenet"`, `"efficientnet"`, `"xception"`, `"nasnetmobile"`, `"inceptionresnetv2"`.
-- **Model Auto-Selection**: Based on dataset size, the class can automatically select the appropriate model.
-
-#### Example Workflow
+### Training Parameters
 
 ```python
-# Initialize the classifier
-image_classifier = ImageClassifier()
-
-# Train the model using images organized in directories
-image_classifier.img_train(
-    train_dir="data/train_images",
-    test_dir="data/test_images",
+model, history = clf.train(
+    train_dir="data/train",
     epochs=20,
-    device="cuda",      # Use GPU if available
-    force="resnet50",   # Force ResNet50 model
-    finetune=True       # Enable fine-tuning
+    batch_size=32,
+    model_name="resnet50",     # See models below
+    finetune=True,             # Finetune all layers
+    learning_rate=0.001,
+    use_amp=True,              # Mixed precision (GPU)
+    save_path="model.pth"
 )
 ```
 
-#### 3. Plotting Training Accuracy
+### Available Models
 
-The `plot_accuracy` method displays the training and validation accuracy across epochs.
+| Model | Best For | Parameters |
+|-------|----------|------------|
+| `simple_cnn` | Small datasets (<1K) | 3M |
+| `vgg16` | General purpose | 138M |
+| `resnet50` | Large datasets | 25M |
+| `mobilenet` | Mobile deployment | 3.5M |
+| `inceptionv3` | Fine-grained | 23M |
+| `densenet` | Feature reuse | 8M |
+| `efficientnet` | Accuracy/size balance | 5M |
+| `convnext` | Modern CNN | 28M |
+| `vit` | Vision Transformer | 86M |
 
-```python
-history = image_classifier.img_train(train_dir="data/train_images", epochs=10)
-image_classifier.plot_accuracy(history)
-```
-
-#### 4. Displaying Confusion Matrix
-
-After training, you can plot a confusion matrix to evaluate the model's predictions on validation data.
-
-```python
-image_classifier.plot_confusion_matrix(model, validation_generator)
-```
-
-#### Files Created
-
-- **Model File**: `selected_model.h5` - The trained model is saved for future use.
-
-### Model Selection Guidelines
-
-The `_select_model` method automatically chooses a model based on dataset size if no specific model is forced. For smaller datasets, simpler models (like `simple_cnn` or `vgg16`) are preferred, while for larger datasets, deeper models (like `resnet50`) are selected for improved accuracy.
-
-#### Model Architectures
-
-Each custom CNN model (from `cnn1` to `cnn10`) and pre-trained model architecture (VGG16, ResNet50, etc.) provides a unique structure optimized for specific types of datasets and computational capacities.
-
-
-
-# ####                                                                     **CTScanProcessor**                                                                  #### # 
-
-
-**CTScanProcessor** is a Python class designed for advanced processing and quality evaluation of CT scan images. This tool is highly beneficial for applications in medical imaging, data science, and deep learning, providing noise reduction, contrast enhancement, detail preservation, and quality evaluation.
-
-## Features
-
-- **Sharpening**: Enhances image details by applying a sharpening filter.
-- **Median Denoising**: Reduces noise while preserving edges using a median filter.
-- **Contrast Enhancement**: Enhances contrast using CLAHE (Contrast Limited Adaptive Histogram Equalization).
-- **Quality Metrics**: Calculates image quality metrics such as MSE, PSNR, SNR, and Detail Preservation Ratio to evaluate the effectiveness of processing.
-- **Image Comparison**: Creates side-by-side comparisons of original and processed images.
-
-## Installation
-
-This class requires the following libraries:
-- OpenCV
-- NumPy
-- SciPy
-
-To install the required dependencies, use:
-```bash
-pip install opencv-python-headless numpy scipy
-```
-
-## Usage
-
-1. **Initialize the Processor**
-   ```python
-   from ct_scan_processor import CTScanProcessor
-   processor = CTScanProcessor(kernel_size=5, clip_limit=2.0, tile_grid_size=(8, 8))
-   ```
-
-2. **Process a CT Scan**
-   Use the `process_ct_scan` method to process a CT scan image and get quality metrics.
-   ```python
-   denoised, metrics = processor.process_ct_scan("path_to_ct_scan.jpg", "output_folder", compare=True)
-   ```
-
-3. **Quality Metrics**
-   After processing, the class returns metrics such as Mean Squared Error (MSE), Peak Signal-to-Noise Ratio (PSNR), Signal-to-Noise Ratio (SNR), and Detail Preservation Ratio.
-
-4. **Compare Images**
-   If `compare=True`, a side-by-side comparison image is saved in the specified comparison folder.
-
-### Example
+### Prediction
 
 ```python
-if __name__ == "__main__":
-    processor = CTScanProcessor()
-    denoised, metrics = processor.process_ct_scan("path_to_ct_scan.jpg", "output_folder", compare=True)
+# Load saved model
+clf.load("model.pth", model_name="resnet50")
+
+# Single image prediction
+result = clf.predict("image.jpg", top_k=3)
+print(result.class_name)       # "cat"
+print(result.probability)      # 0.95
+print(result.top_k)            # [("cat", 0.95), ("dog", 0.03), ...]
+
+# From PIL Image
+from PIL import Image
+result = clf.predict(image=Image.open("image.jpg"))
+
+# Export for production
+clf.export_onnx("model.onnx")
 ```
 
-## Quality Metrics
+---
 
-The following metrics are calculated to evaluate the quality of the denoised image:
+## 🎵 AudioRecognition
 
-- **MSE**: Mean Squared Error between the original and processed images.
-- **PSNR**: Peak Signal-to-Noise Ratio to measure image quality.
-- **SNR**: Signal-to-Noise Ratio to measure signal strength relative to noise.
-- **Detail Preservation**: Percentage of preserved details after processing.
+TensorFlow/Keras CNN-LSTM for audio classification.
 
-## Methods
-
-- `sharpen(image)`: Sharpens the input image.
-- `median_denoise(image)`: Denoises the input image using a median filter.
-- `enhance_contrast(image)`: Enhances contrast using CLAHE.
-- `enhanced_denoise(image_path)`: Processes a CT scan image with denoising, contrast enhancement, and sharpening.
-- `evaluate_quality(original, denoised)`: Computes MSE, PSNR, SNR, and Detail Preservation.
-- `compare_images(original, processed, output_path)`: Saves a side-by-side comparison of the original and processed images.
-- `process_ct_scan(input_path, output_folder, comparison_folder="comparison", compare=False)`: Runs the full CT scan processing pipeline and saves the results.
-
-## License
-
-This project is licensed under the MIT License.
-
-## Contributions
-
-Contributions are welcome! Feel free to submit pull requests or open issues.
-
-
-### AudioRecognition ###
-
-The `AudioRecognition` class in `gurulearn` provides tools for audio data augmentation, feature extraction, model training, and prediction, making it suitable for tasks like audio classification and speech recognition.
-
-#### Key Features
-
-- **Data Augmentation**: Supports time-stretching, pitch-shifting, and noise addition for audio data augmentation.
-- **Feature Extraction**: Extracts MFCCs, FAISS, and spectral contrast features from audio signals.
-- **Model Training**: Trains a deep learning model for audio classification using a Conv1D and BiLSTM-based architecture.
-- **Prediction**: Predicts the class of a given audio file based on a trained model.
-
-#### Usage
-
-To use the `AudioRecognition` class, follow these steps:
-
-#### 1. Importing and Initializing
+### Data Loading
 
 ```python
 from gurulearn import AudioRecognition
 
-# Initialize the audio recognition class
-audio_recognition = AudioRecognition()
-```
+audio = AudioRecognition(sample_rate=16000, n_mfcc=20)
 
-#### 2. Loading Data with Augmentation
-
-The `load_data_with_augmentation` method loads audio data from a specified directory and performs augmentation to improve model generalization.
-
-```python
-data_dir = "path/to/audio/data"
-X, y = audio_recognition.load_data_with_augmentation(data_dir)
-```
-
-This method returns feature vectors (`X`) and labels (`y`) for training.
-
-#### 3. Training the Model
-
-The `audiotrain` method trains an audio classification model. This method also generates a confusion matrix and training history plot, which are saved in the specified model directory.
-
-```python
-audio_recognition.audiotrain(
-    data_path="path/to/audio/data",
+# From directory structure (data/{class_name}/*.wav)
+# Supports: .wav, .mp3, .flac, .ogg, .m4a
+history = audio.audiotrain(
+    data_path="data/audio",
     epochs=50,
     batch_size=32,
+    augment=True,              # Time stretch, pitch shift, noise
+    model_dir="models"
+)
+```
+
+### Training Output
+
+- `models/audio_recognition_model.keras` - Trained model
+- `models/label_mapping.json` - Class labels
+- `models/confusion_matrix.png` - Evaluation plot
+- `models/training_history.png` - Loss/accuracy curves
+
+### Prediction
+
+```python
+# Single file
+result = audio.predict("sample.wav", model_dir="models")
+print(result.label)            # "speech"
+print(result.confidence)       # 0.92
+print(result.all_probabilities)  # [0.92, 0.05, 0.03]
+
+# Batch prediction
+results = audio.predict_batch(
+    ["file1.wav", "file2.wav"], 
+    model_dir="models"
+)
+```
+
+---
+
+## 📊 MLModelAnalysis
+
+AutoML for regression and classification with 10+ algorithms.
+
+### Data Loading
+
+```python
+from gurulearn import MLModelAnalysis
+
+ml = MLModelAnalysis(
+    task_type="auto",              # "auto", "regression", "classification"
+    auto_feature_engineering=True  # Extract date features
+)
+
+# From CSV
+result = ml.train_and_evaluate(
+    csv_file="data.csv",
+    target_column="price",
     test_size=0.2,
-    learning_rate=0.001,
-    model_dir='model_folder'
+    model_name=None,               # Auto-select best model
+    save_path="model.joblib"
 )
 ```
 
-Parameters:
-- **data_path**: Directory path where audio data is stored (organized by class label).
-- **epochs**: Number of training epochs (default: 50).
-- **batch_size**: Training batch size (default: 32).
-- **test_size**: Proportion of data to use for testing (default: 0.2).
-- **learning_rate**: Initial learning rate for model training (default: 0.001).
-- **model_dir**: Directory where the model and label mappings will be saved.
+### Available Models
 
-#### 4. Predicting the Class of an Audio File
+**Regression**: `linear_regression`, `decision_tree`, `random_forest`, `gradient_boosting`, `svm`, `knn`, `ada_boost`, `mlp`, `xgboost`*, `lightgbm`*
 
-After training, you can predict the class of a new audio file using the `predict` or `predict_class` methods.
+**Classification**: `logistic_regression`, `decision_tree`, `random_forest`, `gradient_boosting`, `svm`, `knn`, `ada_boost`, `mlp`, `xgboost`*, `lightgbm`*
+
+*Optional dependencies
+
+### Prediction
 
 ```python
-# Path to the input audio file
-input_wav = "path/to/audio/file.wav"
+# Load and predict
+ml.load_model("model.joblib")
 
-# Predict the label of the audio file
-predicted_label = audio_recognition.predict(input_wav)
-print(f"Predicted Label: {predicted_label}")
-```
+# From dictionary
+prediction = ml.predict({"feature1": 42, "category": "A"})
 
-The `predict` method returns the predicted label (text), while `predict_class` returns the numeric class index.
+# From DataFrame
+predictions = ml.predict(test_df)
 
-#### Example Workflow
-
-```python
-# Initialize the audio recognition instance
-audio_recognition = AudioRecognition()
-
-# Load data and perform augmentation
-X, y = audio_recognition.load_data_with_augmentation('data/audio_files')
-
-# Train the model on the audio dataset
-audio_recognition.audiotrain(
-    data_path='data/audio_files',
-    epochs=30,
-    batch_size=32,
-    learning_rate=0.001
-)
-
-# Predict the class of a new audio sample
-predicted_label = audio_recognition.predict('data/test_audio.wav')
-print("Predicted Label:", predicted_label)
-```
-
-#### Files Created
-
-- **Confusion Matrix**: `confusion_matrix.png` - Saved in the current directory after training.
-- **Training History**: `training_history.png` - Contains plots for model accuracy and loss.
-- **Model**: `audio_recognition_model.h5` - Saved in the specified model directory.
-- **Label Mapping**: `label_mapping.json` - Contains mappings of class indices to labels.
-
-##  Introducing FlowBot  
-`FlowBot` is a flexible framework for creating **dynamic, guided interactions** (chatbots, booking systems, surveys) that adapt to user input and filter datasets in real time. Perfect for travel booking, customer support, or personalized recommendations!  
-
-
----
-
-## Installation  
-```bash
-pip install gurulearn
+# Compare all models
+comparison = ml.compare_models("data.csv", "target", cv=5)
 ```
 
 ---
 
-##  Quick Start  
-**Build a Travel Booking Bot in 5 Steps**:  
+## 💬 FlowBot
+
+Guided conversation flows with real-time data filtering.
+
+### Data Loading
 
 ```python
-import pandas as pd
 from gurulearn import FlowBot
+import pandas as pd
 
-# Sample dataset
-hotels = pd.DataFrame({
-    'destination': ['Paris', 'Tokyo', 'New York'],
-    'price_range': ['$$$', '$$', '$'],
-    'hotel_name': ['Luxury Palace', 'Mountain View', 'Downtown Inn']
-})
+# From DataFrame
+bot = FlowBot(pd.read_csv("hotels.csv"), data_dir="user_sessions")
 
-# Initialize FlowBot
-bot = FlowBot(hotels)
+# From list of dicts
+bot = FlowBot([
+    {"city": "Paris", "price": "$$$", "name": "Le Grand"},
+    {"city": "Tokyo", "price": "$$", "name": "Sakura Inn"}
+])
+```
 
-# Collect user email first
-bot.add_personal_info("email", "Please enter your email:")
+### Building Flows
 
-# Define workflow
-bot.add("destination", "Where would you like to go?", required=True)
-bot.add("price_range", "Choose your budget:", required=False)
-bot.finish("hotel_name", "price_range")  # Final output columns
+```python
+# Add filter steps
+bot.add("city", "Select destination:", required=True)
+bot.add("price", "Choose budget:")
 
-# Simulate user interaction
-response = bot.process("user123", "")  # Start flow!
-print(response['message'])  # "Where would you like to go?"
-print(response['suggestions'])  # ["Paris", "Tokyo", "New York"]
+# Define output columns
+bot.finish("name", "price")
 
-# User selects 'Paris'
+# Validate flow
+errors = bot.validate()
+```
+
+### Processing & Prediction
+
+```python
+# Process user input (maintains session state)
 response = bot.process("user123", "Paris")
-print(response['message'])  # "Choose your budget:"
-print(response['suggestions'])  # ["$$$", "$$"]
-```
 
----
-
-##  Key Features  
-
-### 1. **Dynamic Suggestions**  
-Auto-filter valid options based on prior choices:  
-```python
-bot.add("activity", "Choose an activity:", required=True)
-# Suggests only activities available in the selected destination
-```
-
-### 2. **Personalized Data Collection**  
-```python
-bot.add_personal_info("phone", "Your phone number:", required=True)
-```
-
-### 3. **Session Management**  
-Resume progress or reset conversations:  
-```python
-bot.reset_session("user123")  # Restart workflow
-```
-
-### 4. **Save Results**  
-User data and chat history auto-saved to JSON:  
-```json
-user_data/user123.json
+# Response structure
 {
-  "personal_info": {"email": "user@example.com"},
-  "chat_history": [...]
+    "message": "Choose budget:",
+    "suggestions": ["$$$", "$$"],
+    "completed": False
 }
+
+# Final response
+{
+    "completed": True,
+    "results": [{"name": "Le Grand", "price": "$$$"}],
+    "message": "Found 1 matching options"
+}
+
+# Async support
+response = await bot.aprocess("user123", "Paris")
+
+# Export history
+history_df = bot.export_history("user123", format="dataframe")
 ```
 
 ---
 
-## Detailed Usage  
+## 🤖 QAAgent
 
-### Initialize FlowBot  
-```python
-bot = FlowBot(
-    data=df,  # Your pandas DataFrame
-)
-```
+RAG-based question answering with LangChain + Ollama.
 
-### Add Workflow Steps  
-```python
-bot.add(
-    field="room_type",  # DataFrame column to filter
-    prompt="Select room type:",  # User prompt
-    required=True  # Force valid input
-)
-```
-
-### Get Final Results  
-```python
-results = response['results']  # Filtered DataFrame rows as dicts
-# Example: [{'hotel_name': 'Luxury Palace', 'price_range': '$$$'}]
-```
-
----
-
-## 🔧 Dependencies  
-- Python 3.7+  
-- `pandas`  
-
----
-
-
-## 📜 License  
-[MIT License](LICENSE)  
-
----
-
-## Get Help  
-Found a bug? Open an [issue](https://github.com/guru-dharsan-git/gurulearn/issues).  
-
---- 
- **Happy Building!**  
-*Tag your projects with #gurulearn to share them with the community!*  
-
----
-
-
-
-# GuruLearn
-
-## QAAgent: Create intelligent QA systems with RAG
-
-GuruLearn's QAAgent provides a simple yet powerful way to create domain-specific question-answering agents using Retrieval Augmented Generation (RAG).
-
-## Installation
-
-```bash
-pip install gurulearn
-```
-
-## Dependencies
-
-GuruLearn requires the following dependencies:
-
-- langchain-ollama
-- langchain-core
-- FAISS
-- pandas
-- langchain-community
-
-Install them using:
-
-
-
-## Quick Start
+### Data Loading
 
 ```python
 from gurulearn import QAAgent
 import pandas as pd
 
-# Load your data
-df = pd.read_csv("customer_support_tickets.csv")
-
-# Create an agent
-support_agent = QAAgent(
-    data=df,
-    page_content_fields=["Title", "Description"],
-    metadata_fields=["Category", "Priority"],
-    system_prompt="You are a helpful customer support agent."
-)
-
-# Query the agent
-answer = support_agent.query("How do I reset my password?")
-print(answer)
-
-# Or use interactive mode
-support_agent.interactive_mode()
-```
-
-## Features
-
-- **Simple Setup**: Create powerful RAG-based QA systems with minimal code
-- **Flexible Data Support**: Works with pandas DataFrames or lists of dictionaries
-- **Custom Prompting**: Define system prompts and instructions to shape agent responses
-- **Vector Database Integration**: Automatically creates and manages embeddings for efficient retrieval
-- **Interactive Mode**: Built-in console interface for quick experimentation
-
-## API Reference
-
-### QAAgent
-
-```python
-QAAgent(
-    data,                    # DataFrame or list of dictionaries containing the source data
-    page_content_fields,     # Field(s) to use as document content
-    metadata_fields=None,    # Fields to include as metadata
-    llm_model="llama3.2",    # Ollama model to use for generation
-    k=5,                     # Number of documents to retrieve
-    embedding_model="mxbai-embed-large",  # Ollama model for embeddings
-    db_location="./langchain_db",  # Directory to store vector database
-    collection_name="documents",          # Name of the collection in the vector store
-    prompt_template=None,    # Custom prompt template (if None, a default will be used)
-    system_prompt="You are an expert in answering questions about the provided information."
-)
-```
-
-#### Methods
-
-- **query(question)**: Query the agent with a question and get a response
-- **interactive_mode()**: Start an interactive console session for querying the agent
-
-## Examples
-
-### Restaurant Review QA System
-
-```python
-from gurulearn import QAAgent
-import pandas as pd
-
-# Load restaurant review data
-df = pd.read_csv("restaurant_reviews.csv")
-
-# Create a restaurant review agent
-restaurant_agent = QAAgent(
-    data=df,
-    page_content_fields=["Title", "Review"],
-    metadata_fields=["Rating", "Date"],
+# From DataFrame
+agent = QAAgent(
+    data=pd.read_csv("docs.csv"),
+    page_content_fields=["title", "content"],
+    metadata_fields=["category", "date"],
     llm_model="llama3.2",
-    k=5,
-    db_location="./restaurant_db",
-    collection_name="restaurant_reviews",
-    system_prompt="You are an expert in answering questions about a pizza restaurant."
+    embedding_model="mxbai-embed-large",
+    db_location="./vector_db"
 )
 
-# Ask questions about the restaurant
-result = restaurant_agent.query("What do customers say about the pepperoni pizza?")
-print(result)
+# From list of dicts
+agent = QAAgent(
+    data=[{"title": "Policy", "content": "..."}],
+    page_content_fields="content"
+)
+
+# Load existing index (no data needed)
+agent = QAAgent(db_location="./existing_db")
 ```
 
-### HR Policy Assistant
+### Querying
 
 ```python
-from gurulearn import QAAgent
+# Simple query
+answer = agent.query("What is the refund policy?")
 
-# Create an HR policy assistant
-hr_documents = [
-    {"Policy": "Parental Leave", "Description": "Employees are entitled to 12 weeks of paid parental leave...", "Department": "HR", "LastUpdated": "2023-09-01"},
-    {"Policy": "Remote Work", "Description": "Employees may work remotely up to 3 days per week...", "Department": "HR", "LastUpdated": "2023-10-15"},
-    # More policy documents...
-]
+# With source documents
+result = agent.query("What is the refund policy?", return_sources=True)
+print(result["answer"])
+print(result["sources"])
 
-hr_agent = QAAgent(
-    data=hr_documents,
-    page_content_fields=["Policy", "Description"],
-    metadata_fields=["Department", "LastUpdated"],
-    db_location="./_db",
-    collection_name="hr_policies",
-    system_prompt="You are an HR assistant providing information about company policies."
-)
+# Direct similarity search (no LLM)
+docs = agent.similarity_search("refund", k=5)
 
-# Query the HR assistant
-hr_agent.interactive_mode()
+# Interactive mode
+agent.interactive_mode()
+
+# Add more documents
+agent.add_documents(new_df, "content", ["category"])
 ```
 
-## Advanced Usage
+---
 
-### Custom Prompt Templates
+## 🏥 CTScanProcessor
 
-You can define custom prompt templates to control how the agent processes and responds to queries:
+Medical image enhancement with quality metrics.
+
+### Processing
 
 ```python
-custom_template = """
-You are a technical support specialist for computer hardware.
+from gurulearn import CTScanProcessor
 
-CONTEXT:
-{reviews}
+processor = CTScanProcessor(
+    kernel_size=5,
+    clip_limit=2.0,
+    tile_grid_size=(8, 8)
+)
 
-USER QUESTION:
-{question}
+# Single image - supports .jpg, .png, .dcm, .nii
+result = processor.process_ct_scan(
+    "scan.jpg",
+    output_folder="output/",
+    compare=True               # Save side-by-side comparison
+)
 
-Please provide a concise answer focusing only on the information found in the context.
-If the information isn't in the context, admit you don't know.
-"""
-
-support_agent = QAAgent(
-    data=support_df,
-    page_content_fields=["Issue", "Resolution"],
-    prompt_template=custom_template
+# Batch processing
+results = processor.process_batch(
+    input_folder="scans/",
+    output_folder="processed/"
 )
 ```
 
-### Using with Different Models
-
-QAAgent works with any Ollama model:
+### Quality Metrics
 
 ```python
-# Using with different Ollama models
-medical_agent = QAAgent(
-    data=medical_data,
-    page_content_fields="text",
-    llm_model="nous-hermes2:Q5_K_M", 
-    embedding_model="nomic-embed-text"
-)
+# result.metrics contains:
+print(result.metrics.mse)      # Mean Squared Error
+print(result.metrics.psnr)     # Peak Signal-to-Noise Ratio (dB)
+print(result.metrics.snr)      # Signal-to-Noise Ratio (dB)
+print(result.metrics.detail_preservation)  # Percentage
 ```
 
-## License
+### Individual Operations
 
-MIT
+```python
+import numpy as np
+
+# Apply individual filters
+sharpened = processor.sharpen(image)
+denoised = processor.median_denoise(image)
+enhanced = processor.enhance_contrast(image)
+bilateral = processor.bilateral_denoise(image)
+
+# Compare quality
+metrics = processor.evaluate_quality(original, processed)
+```
+
+---
+
+## ⚡ Performance
+
+- **Lazy Loading**: ~0.001s import time
+- **GPU Auto-Detection**: CUDA for PyTorch/TensorFlow
+- **Mixed Precision**: Automatic FP16 on compatible GPUs
+- **Batch Processing**: All modules support batch inference
+
+---
+
+## 📄 License
+
+MIT License - [Guru Dharsan T](https://github.com/guru-dharsan-git)

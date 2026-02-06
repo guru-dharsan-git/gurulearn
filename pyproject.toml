@@ -1,0 +1,138 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gurulearn"
+version = "5.0.1"
+description = "Comprehensive AI/ML library integrating machine learning, computer vision, audio processing, and conversational AI"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Guru Dharsan T", email = "gurudharsan123@gmail.com"}
+]
+requires-python = ">=3.9"
+keywords = [
+    "machine-learning", "deep-learning", "computer-vision", 
+    "audio-processing", "nlp", "ai", "image-classification",
+    "medical-imaging", "chatbot", "rag"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Image Processing",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Typing :: Typed",
+]
+
+# Core dependencies (always installed)
+dependencies = [
+    "numpy>=1.24,<3",
+    "pandas>=2.0",
+    "scipy>=1.10",
+    "scikit-learn>=1.3",
+    "matplotlib>=3.7",
+    "pillow>=10.0",
+    "joblib>=1.3",
+]
+
+[project.optional-dependencies]
+# Vision module (PyTorch-based image classification)
+vision = [
+    "torch>=2.0",
+    "torchvision>=0.15",
+]
+
+# Audio module (TensorFlow/Keras-based audio classification)
+audio = [
+    "tensorflow>=2.16",
+    "librosa>=0.10",
+    "seaborn>=0.13",
+]
+
+# Medical imaging (CT scan processing)
+medical = [
+    "opencv-python-headless>=4.8",
+]
+
+# Agent/RAG module (LLM-based QA)
+agent = [
+    "langchain>=0.3",
+    "langchain-ollama>=0.3",
+    "langchain-community>=0.3",
+    "faiss-cpu>=1.8",
+]
+
+# Extra ML models
+ml-extra = [
+    "xgboost>=2.0",
+    "lightgbm>=4.0",
+    "plotly>=5.18",
+]
+
+# GPU support
+gpu = [
+    "torch>=2.0",
+    "torchvision>=0.15",
+    "tensorflow[and-cuda]>=2.16",
+]
+
+# Development dependencies
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=4.0",
+    "black>=24.0",
+    "ruff>=0.3",
+    "mypy>=1.8",
+    "pre-commit>=3.6",
+]
+
+# All dependencies (except GPU)
+full = [
+    "gurulearn[vision,audio,medical,agent,ml-extra]",
+]
+
+[project.urls]
+Homepage = "https://github.com/guru-dharsan-git/gurulearn"
+Documentation = "https://github.com/guru-dharsan-git/gurulearn#readme"
+Repository = "https://github.com/guru-dharsan-git/gurulearn"
+Issues = "https://github.com/guru-dharsan-git/gurulearn/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]   
+include = ["gurulearn*"]
+
+[tool.setuptools.package-data]
+gurulearn = ["py.typed", "*.json"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310", "py311", "py312"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_ignores = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"

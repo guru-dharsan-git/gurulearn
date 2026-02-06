@@ -1,5 +1,6 @@
 LICENSE
 README.md
+pyproject.toml
 setup.py
 gurulearn/AgentQA.py
 gurulearn/Audio.py
@@ -9,7 +10,7 @@ gurulearn/Image_Classification.py
 gurulearn/Machine_Learning.py
 gurulearn/__init__.py
 gurulearn/ensure.py
-gurulearn/main.py
+gurulearn/py.typed
 gurulearn.egg-info/PKG-INFO
 gurulearn.egg-info/SOURCES.txt
 gurulearn.egg-info/dependency_links.txt

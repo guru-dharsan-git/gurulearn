@@ -1,77 +1,112 @@
-from langchain_ollama.llms import OllamaLLM
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_ollama import OllamaEmbeddings
+"""
+AgentQA - RAG-based Question Answering with Vector Stores.
+
+Provides a QA agent that uses embeddings and retrieval-augmented generation
+to answer questions based on provided data.
+"""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+from typing import Any, TypedDict
+
+import pandas as pd
+
+from langchain_ollama import OllamaLLM, OllamaEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
-import os
-import pandas as pd
-from typing import List, Dict, Any, Optional, Union
+from langchain_core.prompts import ChatPromptTemplate
+
+
+class QueryResult(TypedDict):
+    """Result from a query operation."""
+    answer: str
+    sources: list[dict[str, Any]]
+    query: str
+
 
 class QAAgent:
+    """
+    RAG-based Question Answering Agent using FAISS and Ollama.
+    
+    Args:
+        data: DataFrame or list of dictionaries containing source data
+        page_content_fields: Field(s) to use as document content
+        metadata_fields: Fields to include as metadata (optional)
+        llm_model: Ollama model for generation (default: "llama3.2")
+        k: Number of documents to retrieve (default: 5)
+        embedding_model: Ollama model for embeddings (default: "mxbai-embed-large")
+        db_location: Directory for vector database storage
+        collection_name: Name of the collection
+        prompt_template: Custom prompt template (optional)
+        system_prompt: System prompt for the agent
+        
+    Example:
+        >>> import pandas as pd
+        >>> df = pd.read_csv("reviews.csv")
+        >>> agent = QAAgent(
+        ...     data=df,
+        ...     page_content_fields=["title", "review"],
+        ...     metadata_fields=["rating", "date"],
+        ...     system_prompt="You are a helpful assistant."
+        ... )
+        >>> result = agent.query("What are the best rated items?")
+        >>> print(result["answer"])
+    """
+
+    DEFAULT_TEMPLATE = """
+{system_prompt}
+
+Here are some relevant documents:
+{reviews}
+
+Based on the above information, please answer the following question:
+{question}
+
+Provide a clear and concise answer.
+"""
+
     def __init__(
         self,
-        data: Union[pd.DataFrame, List[Dict[str, Any]]],
-        page_content_fields: Union[str, List[str]],
-        metadata_fields: Optional[List[str]] = None,
+        data: pd.DataFrame | list[dict[str, Any]] | None = None,
+        page_content_fields: str | list[str] = "",
+        metadata_fields: list[str] | None = None,
         llm_model: str = "llama3.2",
         k: int = 5,
         embedding_model: str = "mxbai-embed-large",
-        db_location: str = "./faiss_langchain_db",
+        db_location: str | Path = "./faiss_langchain_db",
         collection_name: str = "documents",
-        prompt_template: Optional[str] = None,
+        prompt_template: str | None = None,
         system_prompt: str = "You are an expert in answering questions about the provided information.",
     ):
-        """
-        Initialize a QA agent with embeddings and retrieval capabilities using FAISS.
-        
-        Args:
-            data: DataFrame or list of dictionaries containing the source data
-            page_content_fields: Field(s) to use as document content
-            metadata_fields: Fields to include as metadata
-            llm_model: Ollama model to use for generation
-            k: Number of documents to retrieve
-            embedding_model: Ollama model to use for embeddings
-            db_location: Directory to store vector database
-            collection_name: Name of the collection in the vector store
-            prompt_template: Custom prompt template (if None, a default will be used)
-            system_prompt: System prompt describing the agent's role
-        """
         self.llm_model = llm_model
         self.k = k
-        self.db_location = db_location
+        self.db_location = Path(db_location)
         self.collection_name = collection_name
         self.system_prompt = system_prompt
         
-        # Set up embeddings
+        # Initialize embeddings
         self.embeddings = OllamaEmbeddings(model=embedding_model)
         
-        # Check if FAISS index exists
-        index_path = os.path.join(db_location, collection_name)
-        if os.path.exists(index_path):
-            # Load existing FAISS index
+        # Load or create vector store
+        index_path = self.db_location / collection_name
+        if index_path.exists():
             self.vector_store = FAISS.load_local(
-                folder_path=index_path,
+                folder_path=str(index_path),
                 embeddings=self.embeddings,
-                allow_dangerous_deserialization=True  # Required for local loading
+                allow_dangerous_deserialization=True
             )
+        elif data is not None:
+            documents = self._prepare_documents(data, page_content_fields, metadata_fields)
+            self.vector_store = FAISS.from_documents(
+                documents=documents,
+                embedding=self.embeddings
+            )
+            self.db_location.mkdir(parents=True, exist_ok=True)
+            self.vector_store.save_local(str(index_path))
         else:
-            # Create documents and initialize FAISS
-            if data is not None:
-                documents = self._prepare_documents(data, page_content_fields, metadata_fields)
-                self.vector_store = FAISS.from_documents(
-                    documents=documents,
-                    embedding=self.embeddings
-                )
-                # Ensure the directory exists
-                os.makedirs(db_location, exist_ok=True)
-                # Save the index
-                self.vector_store.save_local(os.path.join(db_location, collection_name))
-            else:
-                # Initialize empty FAISS index if no data provided
-                self.vector_store = FAISS.from_texts(
-                    texts=["placeholder"], 
-                    embedding=self.embeddings
-                )
+            raise ValueError("Either data must be provided or existing index must exist at db_location")
         
         # Set up retriever
         self.retriever = self.vector_store.as_retriever(
@@ -81,110 +116,160 @@ class QAAgent:
         # Set up LLM
         self.model = OllamaLLM(model=llm_model)
         
-        # Set up prompt template
-        if prompt_template is None:
-            prompt_template = f"""
-            {system_prompt}
-
-            Here are some relevant documents: {{reviews}}
-
-            Here is the question to answer: {{question}}
-            """
-        self.prompt = ChatPromptTemplate.from_template(prompt_template)
+        # Set up prompt
+        template = prompt_template or self.DEFAULT_TEMPLATE
+        self.prompt = ChatPromptTemplate.from_template(template)
         
         # Create chain
         self.chain = self.prompt | self.model
-    
-    def _prepare_documents(self, data, page_content_fields, metadata_fields):
-        """Create documents from the input data."""
+
+    def _prepare_documents(
+        self,
+        data: pd.DataFrame | list[dict[str, Any]],
+        page_content_fields: str | list[str],
+        metadata_fields: list[str] | None
+    ) -> list[Document]:
+        """Create Document objects from input data."""
         documents = []
         
-        # Convert DataFrame to list of dicts if needed
+        # Convert DataFrame to list of dicts
         if isinstance(data, pd.DataFrame):
-            data_list = data.to_dict(orient='records')
+            data_list = data.to_dict(orient="records")
         else:
             data_list = data
         
-        # Process content fields
+        # Normalize content fields
         if isinstance(page_content_fields, str):
             page_content_fields = [page_content_fields]
         
-        # Create documents
         for i, item in enumerate(data_list):
             # Combine content fields
-            content = " ".join([str(item.get(field, "")) for field in page_content_fields])
+            content_parts = []
+            for field in page_content_fields:
+                value = item.get(field, "")
+                if value and pd.notna(value):
+                    content_parts.append(str(value))
+            
+            content = " ".join(content_parts)
+            
+            if not content.strip():
+                continue
             
             # Extract metadata
-            metadata = {}
+            metadata = {"id": str(i)}
             if metadata_fields:
                 for field in metadata_fields:
                     if field in item:
-                        metadata[field] = item[field]
+                        value = item[field]
+                        # Convert to JSON-serializable type
+                        if pd.notna(value):
+                            metadata[field] = str(value) if not isinstance(value, (int, float, bool)) else value
             
-            # Add an ID to metadata for reference
-            metadata['id'] = str(i)
-            
-            document = Document(
-                page_content=content,
-                metadata=metadata
-            )
-            documents.append(document)
+            documents.append(Document(page_content=content, metadata=metadata))
         
         return documents
-    
-    def add_documents(self, data, page_content_fields, metadata_fields=None):
-        """Add new documents to the existing vector store."""
+
+    def add_documents(
+        self,
+        data: pd.DataFrame | list[dict[str, Any]],
+        page_content_fields: str | list[str],
+        metadata_fields: list[str] | None = None
+    ) -> int:
+        """
+        Add new documents to the vector store.
+        
+        Args:
+            data: New data to add
+            page_content_fields: Field(s) to use as content
+            metadata_fields: Fields to include as metadata
+            
+        Returns:
+            Number of documents added
+        """
         documents = self._prepare_documents(data, page_content_fields, metadata_fields)
         self.vector_store.add_documents(documents)
-        # Save the updated index
-        self.vector_store.save_local(os.path.join(self.db_location, self.collection_name))
         
-    def query(self, question: str) -> str:
+        # Save updated index
+        index_path = self.db_location / self.collection_name
+        self.vector_store.save_local(str(index_path))
+        
+        return len(documents)
+
+    def similarity_search(self, query: str, k: int | None = None) -> list[Document]:
+        """
+        Perform direct similarity search without LLM generation.
+        
+        Args:
+            query: Search query
+            k: Number of results (uses default if None)
+            
+        Returns:
+            List of similar documents
+        """
+        return self.vector_store.similarity_search(query, k=k or self.k)
+
+    def query(self, question: str, return_sources: bool = False) -> QueryResult | str:
         """
         Query the agent with a question.
         
         Args:
             question: The question to ask
+            return_sources: Whether to return source documents
             
         Returns:
-            The generated answer
+            QueryResult dict if return_sources=True, otherwise just the answer string
         """
-        reviews = self.retriever.invoke(question)
-        result = self.chain.invoke({"reviews": reviews, "question": question})
+        retrieved_docs = self.retriever.invoke(question)
+        
+        # Format documents for the prompt
+        reviews_text = "\n\n".join([
+            f"Document {i+1}:\n{doc.page_content}"
+            for i, doc in enumerate(retrieved_docs)
+        ])
+        
+        # Generate answer
+        result = self.chain.invoke({
+            "system_prompt": self.system_prompt,
+            "reviews": reviews_text,
+            "question": question
+        })
+        
+        if return_sources:
+            return QueryResult(
+                answer=result,
+                sources=[{"content": doc.page_content, "metadata": doc.metadata} for doc in retrieved_docs],
+                query=question
+            )
+        
         return result
-    
-    def interactive_mode(self):
+
+    def interactive_mode(self) -> None:
         """Start an interactive query session."""
+        print("\n=== Interactive QA Mode ===")
+        print("Type 'q' or 'quit' to exit\n")
+        
         while True:
-            print("\n\n-------------------------------")
-            question = input("Ask your question (q to quit): ")
-            print("\n\n")
-            if question.lower() == "q":
+            try:
+                question = input("Ask: ").strip()
+                if question.lower() in ("q", "quit", "exit"):
+                    print("Goodbye!")
+                    break
+                
+                if not question:
+                    continue
+                
+                result = self.query(question)
+                print(f"\nAnswer: {result}\n")
+                print("-" * 40 + "\n")
+                
+            except KeyboardInterrupt:
+                print("\nGoodbye!")
                 break
-            
-            result = self.query(question)
-            print(result)
 
-
-# Example usage:
-if __name__ == "__main__":
-    # Load data
-    df = pd.read_csv("data.csv")
-    
-    # Create agent
-    restaurant_agent = QAAgent(
-        data=df,
-        page_content_fields=["Title", "Review"],
-        metadata_fields=["Rating", "Date"],
-        llm_model="llama3.2",
-        k=5,
-        embedding_model="mxbai-embed-large",
-        db_location="./faiss_restaurant_db",
-        collection_name="restaurant_reviews",
-        system_prompt="You are an expert in answering questions about a pizza restaurant. be concise and clear and provide details in points "
-    )
-    
-    # Start interactive mode
-    restaurant_agent.interactive_mode()
-    ans = restaurant_agent.query("whats the best rated pizza shop?")
-    print(ans)
+    def clear_index(self) -> None:
+        """Delete the vector store index."""
+        import shutil
+        index_path = self.db_location / self.collection_name
+        if index_path.exists():
+            shutil.rmtree(index_path)
+            print(f"Deleted index at {index_path}")
