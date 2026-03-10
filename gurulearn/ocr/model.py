@@ -13,7 +13,9 @@ from __future__ import annotations
 import ast
 import json
 import os
+import platform
 import random
+import sys
 import tempfile
 import zipfile
 from collections import Counter, defaultdict
@@ -25,6 +27,13 @@ import cv2
 import numpy as np
 
 from .data import load_class_names, IMAGE_SUFFIXES
+
+# ---------------------------------------------------------------------------
+#  Platform detection
+# ---------------------------------------------------------------------------
+
+_IS_WINDOWS = platform.system() == "Windows"
+
 
 # ---------------------------------------------------------------------------
 #  .guruocr format helpers
@@ -111,10 +120,10 @@ def _build_vgg_ocr(num_classes: int, hidden: int = 256, num_layers: int = 3):
     import torch.nn as nn
     import torch.nn.functional as F
 
-    class VGG_OCR(nn.Module):
+    class _VGG_OCR_Module(nn.Module):
         """VGG-style CNN + BiLSTM for CTC-based OCR."""
 
-        def __init__(self, nc: int = num_classes, hid: int = hidden, nlayers: int = num_layers):
+        def __init__(self, nc: int, hid: int, nlayers: int):
             super().__init__()
             self.cnn = nn.Sequential(
                 nn.Conv2d(1, 64, 3, 1, 1), nn.BatchNorm2d(64), nn.ReLU(True),
@@ -167,7 +176,7 @@ def _build_vgg_ocr(num_classes: int, hidden: int = 256, num_layers: int = 3):
             out = self.fc(rnn_out)
             return F.log_softmax(out, dim=2)
 
-    return VGG_OCR(num_classes, hidden, num_layers)
+    return _VGG_OCR_Module(num_classes, hidden, num_layers)
 
 
 # Make VGG_OCR importable at module level
@@ -184,7 +193,7 @@ class VGG_OCR:
 
 
 # ---------------------------------------------------------------------------
-#  Dataset
+#  YOLO label parsing
 # ---------------------------------------------------------------------------
 
 def _parse_yolo_to_ids(label_path: str, num_tokens: int) -> List[int]:
@@ -223,6 +232,80 @@ def _load_split_samples(
         if ids:
             samples.append({"img": str(img_path), "ids": ids})
     return samples
+
+
+# ---------------------------------------------------------------------------
+#  Module-level Dataset & collate  (picklable for multiprocessing)
+# ---------------------------------------------------------------------------
+
+class OCRDataset:
+    """
+    PyTorch-compatible OCR dataset with optional oversampling for focus tokens.
+
+    Defined at module level so it is picklable by Windows multiprocessing.
+    Inherits from ``torch.utils.data.Dataset`` at runtime.
+    """
+
+    def __init__(
+        self,
+        samples: List[Dict[str, Any]],
+        transform,
+        strong_transform=None,
+        confused_ids: Optional[Set[int]] = None,
+        oversample_factor: int = 1,
+        blank_id: int = 0,
+    ):
+        self.samples = samples
+        self.transform = transform
+        self.strong_transform = strong_transform or transform
+        self.confused_ids = confused_ids or set()
+        self.blank_id = blank_id
+
+        # Build oversampled index list
+        self.indices: List[int] = []
+        self.is_focus: List[bool] = []
+
+        for i, s in enumerate(samples):
+            has_focus = any(t in self.confused_ids for t in s["ids"])
+            if has_focus and oversample_factor > 1:
+                self.indices.extend([i] * oversample_factor)
+                self.is_focus.extend([True] * oversample_factor)
+            else:
+                self.indices.append(i)
+                self.is_focus.append(has_focus)
+
+    def __len__(self) -> int:
+        return len(self.indices)
+
+    def __getitem__(self, idx: int):
+        import torch
+
+        s = self.samples[self.indices[idx]]
+        img = cv2.imread(s["img"], cv2.IMREAD_GRAYSCALE)
+        if img is None:
+            # Fallback: return a blank image if file is unreadable
+            img = np.zeros((64, 256), dtype=np.uint8)
+        img = np.stack([img] * 3, axis=-1)
+
+        tfm = self.strong_transform if self.is_focus[idx] else self.transform
+        img = tfm(image=img)["image"][0:1]  # keep single channel
+
+        return img, torch.tensor(s["ids"], dtype=torch.long), len(s["ids"])
+
+
+def ocr_collate_fn(batch):
+    """Collate function for OCR DataLoader.  Module-level for pickling."""
+    import torch
+
+    imgs, labels, lengths = zip(*batch)
+    imgs = torch.stack(imgs)
+    max_len = max(lengths)
+    # We use a large blank value; actual blank is num_tokens which varies,
+    # but padding value doesn't matter as long as target_lengths are correct.
+    padded = torch.full((len(labels), max_len), 0, dtype=torch.long)
+    for i, (lbl, ln) in enumerate(zip(labels, lengths)):
+        padded[i, :ln] = lbl
+    return imgs, padded, torch.tensor(lengths, dtype=torch.long)
 
 
 # ---------------------------------------------------------------------------
@@ -311,6 +394,52 @@ def _compute_metrics(preds, labels, lengths) -> Tuple[float, float]:
 
 
 # ---------------------------------------------------------------------------
+#  Augmentation builders
+# ---------------------------------------------------------------------------
+
+def _build_augmentations(img_h: int, img_w: int):
+    """Build train/strong/val augmentation pipelines."""
+    import albumentations as A
+    from albumentations.pytorch import ToTensorV2
+
+    train_aug = A.Compose([
+        A.Resize(img_h, img_w),
+        A.ShiftScaleRotate(
+            shift_limit=0.03, scale_limit=0.05, rotate_limit=3,
+            border_mode=cv2.BORDER_REPLICATE, p=0.5,
+        ),
+        A.GaussianBlur(blur_limit=3, p=0.2),
+        A.RandomBrightnessContrast(
+            brightness_limit=0.15, contrast_limit=0.15, p=0.3,
+        ),
+        A.Normalize(mean=[0.5], std=[0.5]),
+        ToTensorV2(),
+    ])
+
+    strong_aug = A.Compose([
+        A.Resize(img_h, img_w),
+        A.ShiftScaleRotate(
+            shift_limit=0.05, scale_limit=0.08, rotate_limit=5,
+            border_mode=cv2.BORDER_REPLICATE, p=0.6,
+        ),
+        A.GaussianBlur(blur_limit=3, p=0.3),
+        A.RandomBrightnessContrast(
+            brightness_limit=0.2, contrast_limit=0.2, p=0.4,
+        ),
+        A.Normalize(mean=[0.5], std=[0.5]),
+        ToTensorV2(),
+    ])
+
+    val_aug = A.Compose([
+        A.Resize(img_h, img_w),
+        A.Normalize(mean=[0.5], std=[0.5]),
+        ToTensorV2(),
+    ])
+
+    return train_aug, strong_aug, val_aug
+
+
+# ---------------------------------------------------------------------------
 #  OCRTrainer
 # ---------------------------------------------------------------------------
 
@@ -378,7 +507,9 @@ class OCRTrainer:
         # Focus tokens
         self.focus_token_ids: Set[int] = set()
         if focus_tokens:
-            self.focus_token_ids = {self.char2id[t] for t in focus_tokens if t in self.char2id}
+            self.focus_token_ids = {
+                self.char2id[t] for t in focus_tokens if t in self.char2id
+            }
 
         # Will be set during train()
         self.model = None
@@ -392,13 +523,23 @@ class OCRTrainer:
             parts.append(tok if len(tok) == 1 else f"<{tok}>")
         return "".join(parts)
 
+    def _safe_num_workers(self, requested: int) -> int:
+        """Return a safe num_workers value for the current platform."""
+        if _IS_WINDOWS:
+            # On Windows, multiprocessing DataLoader workers require the
+            # dataset and collate_fn to be picklable AND the caller to use
+            # ``if __name__ == '__main__'``.  Default to 0 (main-process
+            # loading) to avoid spawn-related crashes.
+            return 0
+        return requested
+
     def train(
         self,
         epochs: int = 150,
         batch_size: int = 64,
         lr: float = 1e-4,
         patience: int = 5,
-        num_workers: int = 2,
+        num_workers: int = 0,
         oversample_factor: int = 4,
         weight_boost: float = 1.3,
         verbose: bool = True,
@@ -411,7 +552,7 @@ class OCRTrainer:
             batch_size: Batch size.
             lr: Learning rate.
             patience: Early-stopping patience.
-            num_workers: DataLoader workers.
+            num_workers: DataLoader workers (auto-set to 0 on Windows).
             oversample_factor: Oversample factor for focus-token samples.
             weight_boost: CTC loss boost for focus-token samples.
             verbose: Print progress.
@@ -421,15 +562,19 @@ class OCRTrainer:
         """
         import torch
         import torch.nn as nn
-        from torch.utils.data import Dataset, DataLoader
+        from torch.utils.data import DataLoader
         from torch.optim import AdamW
         from torch.optim.lr_scheduler import ReduceLROnPlateau
 
+        # Safe workers
+        num_workers = self._safe_num_workers(num_workers)
+
+        # GradScaler — handle API differences across torch versions
         try:
-            from torch.amp import GradScaler, autocast
+            from torch.amp import GradScaler
             scaler = GradScaler("cuda")
-        except ImportError:
-            from torch.cuda.amp import GradScaler, autocast
+        except (ImportError, TypeError):
+            from torch.cuda.amp import GradScaler
             scaler = GradScaler()
 
         random.seed(self.seed)
@@ -455,95 +600,35 @@ class OCRTrainer:
 
         # Build augmentations
         try:
-            import albumentations as A
-            from albumentations.pytorch import ToTensorV2
-
-            train_aug = A.Compose([
-                A.Resize(self.img_h, self.img_w),
-                A.ShiftScaleRotate(
-                    shift_limit=0.03, scale_limit=0.05, rotate_limit=3,
-                    border_mode=cv2.BORDER_REPLICATE, p=0.5,
-                ),
-                A.GaussianBlur(blur_limit=3, p=0.2),
-                A.RandomBrightnessContrast(brightness_limit=0.15, contrast_limit=0.15, p=0.3),
-                A.Normalize(mean=[0.5], std=[0.5]),
-                ToTensorV2(),
-            ])
-            strong_aug = A.Compose([
-                A.Resize(self.img_h, self.img_w),
-                A.ShiftScaleRotate(
-                    shift_limit=0.05, scale_limit=0.08, rotate_limit=5,
-                    border_mode=cv2.BORDER_REPLICATE, p=0.6,
-                ),
-                A.GaussianBlur(blur_limit=3, p=0.3),
-                A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.4),
-                A.Normalize(mean=[0.5], std=[0.5]),
-                ToTensorV2(),
-            ])
-            val_aug = A.Compose([
-                A.Resize(self.img_h, self.img_w),
-                A.Normalize(mean=[0.5], std=[0.5]),
-                ToTensorV2(),
-            ])
+            train_aug, strong_aug, val_aug = _build_augmentations(
+                self.img_h, self.img_w
+            )
         except ImportError:
             raise ImportError(
                 "albumentations is required for OCR training. "
                 "Install with: pip install albumentations"
             )
 
-        blank = self.blank
-        focus_ids = self.focus_token_ids
-
-        # Dataset class (inner to avoid top-level torch import)
-        class _OCRDataset(Dataset):
-            def __init__(self, samples, transform, strong_transform=None,
-                         confused_ids=None, os_factor=1):
-                self.samples = samples
-                self.transform = transform
-                self.strong_transform = strong_transform or transform
-                self.confused_ids = confused_ids or set()
-                self.indices = []
-                self.is_focus = []
-                for i, s in enumerate(samples):
-                    has_focus = any(t in self.confused_ids for t in s["ids"])
-                    if has_focus and os_factor > 1:
-                        self.indices.extend([i] * os_factor)
-                        self.is_focus.extend([True] * os_factor)
-                    else:
-                        self.indices.append(i)
-                        self.is_focus.append(has_focus)
-
-            def __len__(self):
-                return len(self.indices)
-
-            def __getitem__(self, idx):
-                s = self.samples[self.indices[idx]]
-                img = cv2.imread(s["img"], cv2.IMREAD_GRAYSCALE)
-                img = np.stack([img] * 3, axis=-1)
-                tfm = self.strong_transform if self.is_focus[idx] else self.transform
-                img = tfm(image=img)["image"][0:1]
-                return img, torch.tensor(s["ids"]), len(s["ids"])
-
-        def _collate(batch):
-            imgs, labels, lengths = zip(*batch)
-            imgs = torch.stack(imgs)
-            max_len = max(lengths)
-            padded = torch.full((len(labels), max_len), blank, dtype=torch.long)
-            for i, (lbl, ln) in enumerate(zip(labels, lengths)):
-                padded[i, :ln] = lbl
-            return imgs, padded, torch.tensor(lengths)
-
-        train_ds = _OCRDataset(
-            train_samples, train_aug, strong_aug, focus_ids, oversample_factor
+        # Datasets (module-level class — picklable)
+        train_ds = OCRDataset(
+            train_samples, train_aug, strong_aug,
+            confused_ids=self.focus_token_ids,
+            oversample_factor=oversample_factor,
+            blank_id=self.blank,
         )
-        val_ds = _OCRDataset(valid_samples, val_aug)
+        val_ds = OCRDataset(
+            valid_samples, val_aug,
+            blank_id=self.blank,
+        )
 
         train_loader = DataLoader(
-            train_ds, batch_size, shuffle=True, collate_fn=_collate,
+            train_ds, batch_size, shuffle=True,
+            collate_fn=ocr_collate_fn,
             pin_memory=True, num_workers=num_workers,
         )
         val_loader = DataLoader(
-            val_ds, batch_size, shuffle=False, collate_fn=_collate,
+            val_ds, batch_size, shuffle=False,
+            collate_fn=ocr_collate_fn,
             pin_memory=True, num_workers=num_workers,
         )
 
@@ -556,7 +641,9 @@ class OCRTrainer:
             print(f"Model parameters: {params:,}")
 
         criterion = WeightedCTCLoss(
-            blank=self.blank, confused_token_ids=focus_ids, weight_boost=weight_boost
+            blank=self.blank,
+            confused_token_ids=self.focus_token_ids,
+            weight_boost=weight_boost,
         )
         optimizer = AdamW(self.model.parameters(), lr=lr, weight_decay=1e-4)
         scheduler = ReduceLROnPlateau(optimizer, mode="max", factor=0.5, patience=3)
@@ -568,7 +655,7 @@ class OCRTrainer:
         for epoch in range(epochs):
             # -- Train --
             self.model.train()
-            total_loss = 0
+            total_loss = 0.0
             all_preds, all_labels, all_lens = [], [], []
 
             for imgs, labels, lens in train_loader:
@@ -597,11 +684,13 @@ class OCRTrainer:
                     all_lens.extend(lens.cpu())
 
             train_loss = total_loss / max(len(train_loader), 1)
-            train_acc, train_cer = _compute_metrics(all_preds, all_labels, all_lens)
+            train_acc, train_cer = _compute_metrics(
+                all_preds, all_labels, all_lens
+            )
 
             # -- Validate --
             self.model.eval()
-            total_loss = 0
+            total_loss = 0.0
             all_preds, all_labels, all_lens = [], [], []
 
             with torch.no_grad():
@@ -620,7 +709,9 @@ class OCRTrainer:
                     all_lens.extend(lens.cpu())
 
             val_loss = total_loss / max(len(val_loader), 1)
-            val_acc, val_cer = _compute_metrics(all_preds, all_labels, all_lens)
+            val_acc, val_cer = _compute_metrics(
+                all_preds, all_labels, all_lens
+            )
             scheduler.step(val_acc)
 
             self.history.train_loss.append(train_loss)
@@ -638,7 +729,6 @@ class OCRTrainer:
             if val_acc > best_acc:
                 best_acc = val_acc
                 no_improve = 0
-                # Save as .guruocr
                 save_guruocr(
                     self.output_dir / "best_model.guruocr",
                     self.model.state_dict(),
@@ -674,72 +764,45 @@ class OCRTrainer:
             :class:`EvalResult`.
         """
         import torch
+        from torch.utils.data import DataLoader
 
         if self.model is None:
-            # Try to load best model
             best = self.output_dir / "best_model.guruocr"
             if best.exists():
                 state_dict, meta = load_guruocr(best)
                 self.model = _build_vgg_ocr(
-                    meta["num_classes"] + 1, meta["hidden"], meta["num_layers"]
+                    meta["num_classes"] + 1,
+                    meta["hidden"],
+                    meta["num_layers"],
                 )
                 self.model.load_state_dict(state_dict)
-                self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+                self.device = torch.device(
+                    "cuda" if torch.cuda.is_available() else "cpu"
+                )
                 self.model.to(self.device)
             else:
-                raise RuntimeError("No model loaded. Train first or provide a model.")
-
-        from torch.utils.data import Dataset, DataLoader
+                raise RuntimeError(
+                    "No model loaded. Train first or provide a model."
+                )
 
         try:
-            import albumentations as A
-            from albumentations.pytorch import ToTensorV2
+            _, _, val_aug = _build_augmentations(self.img_h, self.img_w)
         except ImportError:
             raise ImportError("albumentations required for evaluation.")
-
-        val_aug = A.Compose([
-            A.Resize(self.img_h, self.img_w),
-            A.Normalize(mean=[0.5], std=[0.5]),
-            ToTensorV2(),
-        ])
 
         samples = _load_split_samples(self.data_dir, split, self.num_tokens)
         if not samples:
             raise ValueError(f"No samples found in {split} split.")
 
-        blank = self.blank
-
-        class _DS(Dataset):
-            def __init__(self, samps, tfm):
-                self.s = samps
-                self.t = tfm
-
-            def __len__(self):
-                return len(self.s)
-
-            def __getitem__(self, i):
-                s = self.s[i]
-                img = cv2.imread(s["img"], cv2.IMREAD_GRAYSCALE)
-                img = np.stack([img] * 3, axis=-1)
-                img = self.t(image=img)["image"][0:1]
-                return img, torch.tensor(s["ids"]), len(s["ids"])
-
-        def _coll(batch):
-            imgs, labels, lengths = zip(*batch)
-            imgs = torch.stack(imgs)
-            ml = max(lengths)
-            padded = torch.full((len(labels), ml), blank, dtype=torch.long)
-            for i, (lbl, ln) in enumerate(zip(labels, lengths)):
-                padded[i, :ln] = lbl
-            return imgs, padded, torch.tensor(lengths)
-
+        eval_ds = OCRDataset(samples, val_aug, blank_id=self.blank)
         loader = DataLoader(
-            _DS(samples, val_aug), 64, shuffle=False, collate_fn=_coll, pin_memory=True
+            eval_ds, 64, shuffle=False,
+            collate_fn=ocr_collate_fn, pin_memory=True,
         )
 
         criterion = WeightedCTCLoss(blank=self.blank)
         self.model.eval()
-        total_loss = 0
+        total_loss = 0.0
         all_preds, all_labels, all_lens = [], [], []
 
         with torch.no_grad():
@@ -748,7 +811,9 @@ class OCRTrainer:
                 labels = labels.to(self.device)
                 out = self.model(imgs)
                 out_t = out.permute(1, 0, 2)
-                il = torch.full((out_t.size(1),), out_t.size(0), dtype=torch.long)
+                il = torch.full(
+                    (out_t.size(1),), out_t.size(0), dtype=torch.long
+                )
                 total_loss += criterion(out_t, labels, il, lens).item()
                 all_preds.extend(greedy_decode(out, self.blank))
                 all_labels.extend(labels.cpu())
@@ -768,6 +833,8 @@ class OCRTrainer:
     def plot_results(self, save: bool = True) -> None:
         """Plot training curves and save to output_dir."""
         try:
+            import matplotlib
+            matplotlib.use("Agg")  # non-interactive backend
             import matplotlib.pyplot as plt
         except ImportError:
             print("matplotlib required for plotting.")

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gurulearn"
-version = "5.1.0"
+version = "6.0.0"
 description = "Comprehensive AI/ML library integrating machine learning, computer vision, audio processing, and conversational AI"
 readme = "README.md"
 license = {text = "MIT"}
