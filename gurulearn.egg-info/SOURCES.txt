@@ -16,3 +16,9 @@ gurulearn.egg-info/SOURCES.txt
 gurulearn.egg-info/dependency_links.txt
 gurulearn.egg-info/requires.txt
 gurulearn.egg-info/top_level.txt
+gurulearn/ocr/__init__.py
+gurulearn/ocr/augment.py
+gurulearn/ocr/data.py
+gurulearn/ocr/inference.py
+gurulearn/ocr/model.py
+gurulearn/ocr/pipeline.py

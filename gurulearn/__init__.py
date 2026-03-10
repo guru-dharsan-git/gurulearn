@@ -12,11 +12,12 @@ Modules:
     - ImageClassifier: Image classification with multiple architectures
     - MLModelAnalysis: Automated ML model training and evaluation
     - QAAgent: RAG-based question answering with vector stores
+    - ocr: Character-level OCR with CTC decoding (training & inference)
 """
 
 from __future__ import annotations
 
-__version__ = "5.0.0"
+__version__ = "5.1.0"
 __author__ = "Guru Dharsan T"
 __email__ = "gurudharsan123@gmail.com"
 
@@ -42,6 +43,11 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "ImageClassifier": (".Image_Classification", "ImageClassifier"),
     "MLModelAnalysis": (".Machine_Learning", "MLModelAnalysis"),
     "QAAgent": (".AgentQA", "QAAgent"),
+}
+
+# Submodule lazy imports
+_LAZY_SUBMODULES: dict[str, str] = {
+    "ocr": "gurulearn.ocr",
 }
 
 __all__ = [
@@ -76,6 +82,13 @@ def __getattr__(name: str):
         # Cache for future access
         _loaded_modules[name] = cls
         return cls
+    
+    # Submodule lazy loading (e.g. gurulearn.ocr)
+    if name in _LAZY_SUBMODULES:
+        import importlib
+        mod = importlib.import_module(_LAZY_SUBMODULES[name])
+        _loaded_modules[name] = mod
+        return mod
     
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 

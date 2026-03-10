@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: gurulearn
-Version: 5.0.1
+Version: 5.1.0
 Summary: Comprehensive AI/ML library integrating machine learning, computer vision, audio processing, and conversational AI
 Author-email: Guru Dharsan T <gurudharsan123@gmail.com>
 License: MIT
@@ -8,7 +8,7 @@ Project-URL: Homepage, https://github.com/guru-dharsan-git/gurulearn
 Project-URL: Documentation, https://github.com/guru-dharsan-git/gurulearn#readme
 Project-URL: Repository, https://github.com/guru-dharsan-git/gurulearn
 Project-URL: Issues, https://github.com/guru-dharsan-git/gurulearn/issues
-Keywords: machine-learning,deep-learning,computer-vision,audio-processing,nlp,ai,image-classification,medical-imaging,chatbot,rag
+Keywords: machine-learning,deep-learning,computer-vision,audio-processing,nlp,ai,image-classification,medical-imaging,chatbot,rag,ocr,ctc
 Classifier: Development Status :: 4 - Beta
 Classifier: Intended Audience :: Science/Research
 Classifier: Intended Audience :: Developers
@@ -47,6 +47,12 @@ Requires-Dist: langchain>=0.3; extra == "agent"
 Requires-Dist: langchain-ollama>=0.3; extra == "agent"
 Requires-Dist: langchain-community>=0.3; extra == "agent"
 Requires-Dist: faiss-cpu>=1.8; extra == "agent"
+Provides-Extra: ocr
+Requires-Dist: torch>=2.0; extra == "ocr"
+Requires-Dist: torchvision>=0.15; extra == "ocr"
+Requires-Dist: opencv-python-headless>=4.8; extra == "ocr"
+Requires-Dist: albumentations>=1.3; extra == "ocr"
+Requires-Dist: tqdm>=4.60; extra == "ocr"
 Provides-Extra: ml-extra
 Requires-Dist: xgboost>=2.0; extra == "ml-extra"
 Requires-Dist: lightgbm>=4.0; extra == "ml-extra"
@@ -63,7 +69,7 @@ Requires-Dist: ruff>=0.3; extra == "dev"
 Requires-Dist: mypy>=1.8; extra == "dev"
 Requires-Dist: pre-commit>=3.6; extra == "dev"
 Provides-Extra: full
-Requires-Dist: gurulearn[agent,audio,medical,ml-extra,vision]; extra == "full"
+Requires-Dist: gurulearn[agent,audio,medical,ml-extra,ocr,vision]; extra == "full"
 Dynamic: license-file
 
 <p align="center">
@@ -88,6 +94,7 @@ pip install gurulearn              # Core only
 pip install gurulearn[vision]      # + PyTorch image classification
 pip install gurulearn[audio]       # + TensorFlow audio recognition  
 pip install gurulearn[agent]       # + LangChain RAG agent
+pip install gurulearn[ocr]         # + CTC-based character OCR
 pip install gurulearn[full]        # All features
 ```
 
@@ -431,6 +438,125 @@ bilateral = processor.bilateral_denoise(image)
 
 # Compare quality
 metrics = processor.evaluate_quality(original, processed)
+```
+
+---
+
+## 🔤 OCR Module
+
+Character-level OCR with VGG-BiLSTM + CTC decoding. Auto-discovers classes from `data.yaml` — works with any character set.(YOLO DATASET FORMAT)
+
+### Installation
+
+```bash
+pip install gurulearn[ocr]
+```
+
+### Quick Inference
+
+```python
+from gurulearn.ocr import OCRPredictor
+
+# Load model — NO dataset needed, everything is in the .guruocr file
+predictor = OCRPredictor("best_model.guruocr")
+
+result = predictor.predict("image.jpg")
+print(result.text)          # "ASDF"
+print(result.confidence)    # 0.97
+
+# Batch prediction
+results = predictor.predict_batch(["img1.jpg", "img2.jpg"])
+
+# Visualize with overlay
+predictor.visualize("image.jpg", save_path="output.png")
+```
+
+### Training
+
+```python
+from gurulearn.ocr import OCRTrainer
+
+trainer = OCRTrainer(
+    data_dir="path/to/yolo_dataset",  # Must have data.yaml + train/valid/test splits
+    output_dir="output/",
+    img_h=48, img_w=128,               # Model input size
+    hidden=256, num_layers=3,           # Architecture config
+    focus_tokens=["I", "O"],            # Optional: boost learning for confusable chars
+)
+
+history = trainer.train(
+    epochs=150,
+    batch_size=64,
+    lr=1e-4,
+    patience=5,
+)
+
+# Evaluate on test set
+result = trainer.evaluate()  # accuracy, CER, loss
+
+# Save training curves
+trainer.plot_results()
+```
+
+The trainer saves a `.guruocr` file — a self-contained archive with model weights + metadata (class names, image dimensions, architecture config). This means inference never needs the original dataset.
+
+### Dataset Utilities
+
+```python
+from gurulearn.ocr import split_datasets, merge_datasets, rebalance_splits, shuffle_augment
+
+# Split datasets by filename keywords
+result = split_datasets(
+    source_dirs=["dataset_v1", "dataset_v2"],
+    output_root="segregated_datasets",
+    keywords={"aircraft": "aircraft", "supplier": "suppliers"},
+)
+
+# Generate synthetic augmented images with double-letter support
+result = shuffle_augment(
+    source_dir="segregated_datasets/aircraft",
+    num_output=30000,
+    doubles=5200,   # ~200 per letter for CTC double-character learning
+)
+
+# Merge multiple YOLO datasets
+result = merge_datasets(source_root="segregated_datasets", output_name="merged")
+
+# Rebalance train/valid/test split ratios
+result = rebalance_splits("path/to/dataset", train_ratio=0.8, valid_ratio=0.1, test_ratio=0.1)
+```
+
+### Automated Pipeline
+
+Run the full workflow — split → augment → train → evaluate — in one command:
+
+```python
+from gurulearn.ocr import OCRPipeline
+
+pipeline = OCRPipeline(
+    source_dirs=["dataset_v1", "dataset_v2"],
+    output_root="segregated_datasets",
+    dataset_name="aircraft",
+    split_keywords={"aircraft": "aircraft", "supplier": "suppliers"},
+    augment_count=30000,
+    doubles_count=5200,
+    train_epochs=150,
+)
+
+# Everything at once
+result = pipeline.run_all()
+
+# Or step by step
+pipeline.step_split()
+pipeline.step_augment()
+pipeline.step_merge()
+pipeline.step_rebalance()
+pipeline.step_train()
+pipeline.step_evaluate()
+
+# Get a predictor from the trained model
+predictor = pipeline.get_predictor()
+print(predictor.predict("test.jpg").text)
 ```
 
 ---

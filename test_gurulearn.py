@@ -301,10 +301,82 @@ def test_dependency_check():
         return False
 
 
+def test_ocr_module():
+    """Test OCR module imports and model instantiation."""
+    print("\n" + "=" * 50)
+    print("TEST 8: OCR Module")
+    print("=" * 50)
+    
+    try:
+        # Test imports
+        from gurulearn.ocr import (
+            split_datasets,
+            merge_datasets,
+            rebalance_splits,
+            shuffle_augment,
+            load_class_names,
+            OCRTrainer,
+            OCRPredictor,
+            OCRPipeline,
+            VGG_OCR,
+            SplitResult,
+            MergeResult,
+            RebalanceResult,
+            AugmentResult,
+            TrainHistory,
+            EvalResult,
+            PredictionResult,
+            PipelineResult,
+        )
+        print("✓ All OCR imports successful")
+        
+        # Test model instantiation with various class counts
+        for nc in [10, 26, 36]:
+            model = VGG_OCR(num_classes=nc + 1)  # +1 for CTC blank
+            params = sum(p.numel() for p in model.parameters())
+            print(f"✓ VGG_OCR({nc} classes): {params:,} parameters")
+        
+        # Test load_class_names with a temp data.yaml
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml',
+                                          delete=False, dir='.') as f:
+            f.write("train: train/images\n")
+            f.write("val: valid/images\n")
+            f.write("nc: 5\n")
+            f.write("names: ['A', 'B', 'C', 'D', 'E']\n")
+            tmp_yaml = f.name
+        
+        try:
+            names = load_class_names(tmp_yaml)
+            assert names == ['A', 'B', 'C', 'D', 'E']
+            print(f"✓ load_class_names: {names}")
+        finally:
+            Path(tmp_yaml).unlink()
+        
+        # Test dataclass creation
+        sr = SplitResult()
+        mr = MergeResult()
+        rr = RebalanceResult()
+        ar = AugmentResult()
+        th = TrainHistory()
+        er = EvalResult()
+        pr = PredictionResult(text="ABC")
+        plr = PipelineResult()
+        print("✓ All dataclasses instantiate correctly")
+        
+        return True
+        
+    except Exception as e:
+        print(f"✗ OCR module test failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
 def main():
     """Run all tests."""
     print("\n" + "#" * 50)
-    print("# GURULEARN v5.0 TEST SUITE")
+    print("# GURULEARN v5.1 TEST SUITE")
     print("#" * 50)
     
     tests = [
@@ -315,6 +387,7 @@ def main():
         ("AudioRecognition", test_audio_recognition),
         ("MLModelAnalysis", test_ml_model_analysis),
         ("Dependency Check", test_dependency_check),
+        ("OCR Module", test_ocr_module),
     ]
     
     results = []

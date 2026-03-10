@@ -20,6 +20,7 @@ pip install gurulearn              # Core only
 pip install gurulearn[vision]      # + PyTorch image classification
 pip install gurulearn[audio]       # + TensorFlow audio recognition  
 pip install gurulearn[agent]       # + LangChain RAG agent
+pip install gurulearn[ocr]         # + CTC-based character OCR
 pip install gurulearn[full]        # All features
 ```
 
@@ -363,6 +364,125 @@ bilateral = processor.bilateral_denoise(image)
 
 # Compare quality
 metrics = processor.evaluate_quality(original, processed)
+```
+
+---
+
+## 🔤 OCR Module
+
+Character-level OCR with VGG-BiLSTM + CTC decoding. Auto-discovers classes from `data.yaml` — works with any character set.(YOLO DATASET FORMAT)
+
+### Installation
+
+```bash
+pip install gurulearn[ocr]
+```
+
+### Quick Inference
+
+```python
+from gurulearn.ocr import OCRPredictor
+
+# Load model — NO dataset needed, everything is in the .guruocr file
+predictor = OCRPredictor("best_model.guruocr")
+
+result = predictor.predict("image.jpg")
+print(result.text)          # "ASDF"
+print(result.confidence)    # 0.97
+
+# Batch prediction
+results = predictor.predict_batch(["img1.jpg", "img2.jpg"])
+
+# Visualize with overlay
+predictor.visualize("image.jpg", save_path="output.png")
+```
+
+### Training
+
+```python
+from gurulearn.ocr import OCRTrainer
+
+trainer = OCRTrainer(
+    data_dir="path/to/yolo_dataset",  # Must have data.yaml + train/valid/test splits
+    output_dir="output/",
+    img_h=48, img_w=128,               # Model input size
+    hidden=256, num_layers=3,           # Architecture config
+    focus_tokens=["I", "O"],            # Optional: boost learning for confusable chars
+)
+
+history = trainer.train(
+    epochs=150,
+    batch_size=64,
+    lr=1e-4,
+    patience=5,
+)
+
+# Evaluate on test set
+result = trainer.evaluate()  # accuracy, CER, loss
+
+# Save training curves
+trainer.plot_results()
+```
+
+The trainer saves a `.guruocr` file — a self-contained archive with model weights + metadata (class names, image dimensions, architecture config). This means inference never needs the original dataset.
+
+### Dataset Utilities
+
+```python
+from gurulearn.ocr import split_datasets, merge_datasets, rebalance_splits, shuffle_augment
+
+# Split datasets by filename keywords
+result = split_datasets(
+    source_dirs=["dataset_v1", "dataset_v2"],
+    output_root="segregated_datasets",
+    keywords={"aircraft": "aircraft", "supplier": "suppliers"},
+)
+
+# Generate synthetic augmented images with double-letter support
+result = shuffle_augment(
+    source_dir="segregated_datasets/aircraft",
+    num_output=30000,
+    doubles=5200,   # ~200 per letter for CTC double-character learning
+)
+
+# Merge multiple YOLO datasets
+result = merge_datasets(source_root="segregated_datasets", output_name="merged")
+
+# Rebalance train/valid/test split ratios
+result = rebalance_splits("path/to/dataset", train_ratio=0.8, valid_ratio=0.1, test_ratio=0.1)
+```
+
+### Automated Pipeline
+
+Run the full workflow — split → augment → train → evaluate — in one command:
+
+```python
+from gurulearn.ocr import OCRPipeline
+
+pipeline = OCRPipeline(
+    source_dirs=["dataset_v1", "dataset_v2"],
+    output_root="segregated_datasets",
+    dataset_name="aircraft",
+    split_keywords={"aircraft": "aircraft", "supplier": "suppliers"},
+    augment_count=30000,
+    doubles_count=5200,
+    train_epochs=150,
+)
+
+# Everything at once
+result = pipeline.run_all()
+
+# Or step by step
+pipeline.step_split()
+pipeline.step_augment()
+pipeline.step_merge()
+pipeline.step_rebalance()
+pipeline.step_train()
+pipeline.step_evaluate()
+
+# Get a predictor from the trained model
+predictor = pipeline.get_predictor()
+print(predictor.predict("test.jpg").text)
 ```
 
 ---
